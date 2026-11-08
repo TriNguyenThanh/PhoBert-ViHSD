@@ -44,6 +44,7 @@ uv run python Scripts/<script_name>.py
    - Maintain clear, precise, and concise academic writing.
    - Absolutely no decorative emojis or icons in source code, notebooks, or commit messages.
    - Use standard Vietnamese with full diacritics for key explanatory comments in notebooks and scripts.
+   - **No Symbolic Links:** Keep all files strictly in their designated directories per the repository structure; do not create symbolic links.
 
 2. **Jupyter Notebook Guidelines:**
    - **File naming convention:** Notebook files must strictly follow the format `checkpoint01_<name>.ipynb`, `checkpoint02_<name>.ipynb`, etc.
