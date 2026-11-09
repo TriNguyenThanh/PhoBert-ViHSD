@@ -33,7 +33,7 @@ def create_checkpoint03_notebook():
         "3. Tích hợp hàm mất mát Focal Loss đa lớp (Lin et al., 2017) với cơ chế điều chế mẫu khó (Hard Example Mining):",
         "   FL(p_t) = -(1 - p_t)^gamma * log(p_t)",
         "   Hệ số điều chế (1 - p_t)^gamma tự động triệt tiêu gradient của các mẫu dễ phân loại và tập trung tối ưu hóa vào các mẫu khó thuộc hai lớp thiểu số (OFFENSIVE và HATE).",
-        "4. Khảo sát độc lập tác động của tham số tập trung gamma (thiết lập mặc định gamma = 2.0 theo đề xuất học thuật) khi cố định alpha = 1.0 nhằm cô lập ảnh hưởng của cơ chế điều chế động trước khi kết hợp trọng số lớp tĩnh ở các checkpoint tiếp theo.",
+        "4. Khảo sát độc lập tác động của tham số tập trung gamma (thiết lập gamma = 1.5) khi cố định alpha = 1.0 nhằm cô lập ảnh hưởng của cơ chế điều chế động trước khi kết hợp trọng số lớp tĩnh ở các checkpoint tiếp theo.",
         "5. Kế thừa toàn bộ chiến lược huấn luyện tối ưu đã thiết lập từ Checkpoint 2: mở rộng ngữ cảnh max_length = 256, phân tầng tốc độ học (Differential Learning Rates: Backbone 2e-5, Classification Head 1e-4), lịch trình Cosine Annealing kèm Warmup, và lưu trữ trọng số tối ưu nhất theo eval_macro_f1 trên tập dev với Early Stopping.",
         "6. Phân tích định lượng sự dịch chuyển độ nhạy (Recall) của các lớp thiểu số, chứng minh sự suy giảm rõ rệt của các trường hợp phân loại sai nhãn OFFENSIVE và HATE thành CLEAN.",
         "",
@@ -460,7 +460,7 @@ def create_checkpoint03_notebook():
         "    \"\"\"",
         "",
         "    # Khởi tạo hàm mất mát với tham số tập trung gamma, hệ số trọng số alpha và cơ chế reduction",
-        "    def __init__(self, gamma=2.0, alpha=None, reduction='mean'):",
+        "    def __init__(self, gamma=1.5, alpha=None, reduction='mean'):",
         "        super().__init__()",
         "        self.gamma = gamma",
         "        self.alpha = alpha",
@@ -507,7 +507,7 @@ def create_checkpoint03_notebook():
         "    \"\"\"Lớp Trainer tùy biến tích hợp hàm mất mát Focal Loss cho quá trình huấn luyện Hugging Face.\"\"\"",
         "",
         "    # Khởi tạo Trainer với tham số gamma và alpha cho Focal Loss",
-        "    def __init__(self, *args, focal_gamma=2.0, focal_alpha=None, **kwargs):",
+        "    def __init__(self, *args, focal_gamma=1.5, focal_alpha=None, **kwargs):",
         "        super().__init__(*args, **kwargs)",
         "        self.focal_gamma = focal_gamma",
         "        self.focal_alpha = focal_alpha",
@@ -532,14 +532,14 @@ def create_checkpoint03_notebook():
         "ce_loss = nn.CrossEntropyLoss()(dummy_logits, dummy_targets)",
         "assert torch.allclose(fl_zero, ce_loss, atol=1e-6), 'Lỗi: FocalLoss với gamma=0 phải tương đương tuyệt đối với CrossEntropyLoss'",
         "",
-        "fl_gamma2 = FocalLoss(gamma=2.0)(dummy_logits, dummy_targets)",
-        "assert not torch.isnan(fl_gamma2) and not torch.isinf(fl_gamma2), 'Lỗi: FocalLoss xuất hiện NaN hoặc Inf'",
-        "assert fl_gamma2.item() < ce_loss.item(), 'Lỗi: FocalLoss với gamma > 0 phải có giá trị nhỏ hơn hoặc bằng Cross-Entropy'",
+        "fl_gamma15 = FocalLoss(gamma=1.5)(dummy_logits, dummy_targets)",
+        "assert not torch.isnan(fl_gamma15) and not torch.isinf(fl_gamma15), 'Lỗi: FocalLoss xuất hiện NaN hoặc Inf'",
+        "assert fl_gamma15.item() < ce_loss.item(), 'Lỗi: FocalLoss với gamma > 0 phải có giá trị nhỏ hơn hoặc bằng Cross-Entropy'",
         "",
         "print('Kiểm tra toán học của FocalLoss thành công:')",
         "print(f'- Cross-Entropy chuẩn:      {ce_loss.item():.6f}')",
         "print(f'- Focal Loss (gamma = 0.0): {fl_zero.item():.6f} (Khớp tuyệt đối)')",
-        "print(f'- Focal Loss (gamma = 2.0): {fl_gamma2.item():.6f} (Đã điều chế mẫu dễ)')"
+        "print(f'- Focal Loss (gamma = 1.5): {fl_gamma15.item():.6f} (Đã điều chế mẫu dễ)')"
     ])
 
     # Cell 14: Markdown Section 6
@@ -547,7 +547,7 @@ def create_checkpoint03_notebook():
         "## 6. Cấu Hình Siêu Tham Số, Phân Tầng Tốc Độ Học và Thiết Lập FocalLossTrainer",
         "",
         "Thiết lập cấu hình tối ưu kế thừa từ Checkpoint 2 kết hợp hàm mất mát Focal Loss:",
-        "1. **Tham số tập trung Focal Loss:** $\\gamma = 2.0$ (theo tiêu chuẩn nghiên cứu kinh điển của Lin et al., 2017).",
+        "1. **Tham số tập trung Focal Loss:** $\\gamma = 1.5$ (khảo sát tối ưu hóa điều chế mẫu khó).",
         "2. **Phân tầng tốc độ học (Differential Learning Rates):**",
         "   - Backbone RoBERTa (`model.roberta`): $\\text{lr} = 2 \\times 10^{-5}$ để bảo tồn tri thức ngôn ngữ chung.",
         "   - Classification Head (`model.classifier`): $\\text{lr} = 1 \\times 10^{-4}$ để tăng tốc hội tụ.",
@@ -570,7 +570,7 @@ def create_checkpoint03_notebook():
         "warmup_ratio = 0.1",
         "weight_decay = 0.01",
         "early_stopping_patience = 2",
-        "focal_gamma = 2.0",
+        "focal_gamma = 1.5",
         "",
         "import numpy as np",
         "from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score",
@@ -685,7 +685,7 @@ def create_checkpoint03_notebook():
         "",
         "training_args = TrainingArguments(**training_kwargs)",
         "",
-        "# Khởi tạo FocalLossTrainer với tham số focal_gamma = 2.0",
+        "# Khởi tạo FocalLossTrainer với tham số focal_gamma = 1.5",
         "trainer = FocalLossTrainer(",
         "    model=model,",
         "    args=training_args,",
@@ -1008,7 +1008,7 @@ def create_checkpoint03_notebook():
         "1. **Baseline (Checkpoint 0 - Luu et al., 2021):** Stopwords stripped, deEmojify, max_length = 100, 2 epochs, Cross-Entropy.",
         "2. **Checkpoint 1 (Preprocessing):** Giữ đại từ & phủ định, Emoji 2 pha, Teencode, PyVi, max_length = 100, 2 epochs, Cross-Entropy.",
         "3. **Checkpoint 2 (Training Strategy):** max_length = 256, 8-10 epochs, Early Stopping, Differential LR, Cross-Entropy.",
-        "4. **Checkpoint 3 (Focal Loss):** max_length = 256, 8-10 epochs, Early Stopping, Differential LR, Focal Loss (gamma = 2.0)."
+        "4. **Checkpoint 3 (Focal Loss):** max_length = 256, 8-10 epochs, Early Stopping, Differential LR, Focal Loss (gamma = 1.5)."
     ])
 
     # Cell 27: Cumulative Benchmark Comparison
@@ -1091,7 +1091,7 @@ def create_checkpoint03_notebook():
         "        'Phân tầng LR (Backbone 2e-5, Head 1e-4), Cosine, Best Macro-F1',",
         "        'Phân tầng LR (Backbone 2e-5, Head 1e-4), Cosine, Best Macro-F1',",
         "    ],",
-        "    'Hàm Mất Mát': ['Cross-Entropy', 'Cross-Entropy', 'Cross-Entropy', 'Focal Loss (gamma=2.0)'],",
+        "    'Hàm Mất Mát': ['Cross-Entropy', 'Cross-Entropy', 'Cross-Entropy', 'Focal Loss (gamma=1.5)'],",
         "    'Accuracy': [0.8350, cp1_acc, cp2_acc, curr_acc],",
         "    'Macro-Precision': [0.6400, cp1_macro_p, cp2_macro_p, curr_macro_p],",
         "    'Macro-Recall': [0.6200, cp1_macro_r, cp2_macro_r, curr_macro_r],",
