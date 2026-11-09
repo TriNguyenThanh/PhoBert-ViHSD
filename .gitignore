@@ -222,4 +222,5 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-Scripts/
+# GitNexus
+.gitnexus/
