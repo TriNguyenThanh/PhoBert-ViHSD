@@ -64,9 +64,19 @@ Mục tiêu của Checkpoint 1 là khắc phục các hạn chế trong pipeline
 3. **Thu gọn ký tự kéo dài biểu đạt cảm xúc (Lengthening Reduction):**
    - Nhận diện và quy đổi các chuỗi ký tự lặp bất thường từ 3 lần trở lên về độ dài tiêu chuẩn (tối đa 1 hoặc 2 ký tự, ví dụ: `ngonnnnn` thành `ngon`, `chánnnnnn` thành `chán`).
 
-4. **Bảo tồn và chuẩn hóa sắc thái cảm xúc (Emoji and Sentiment Polarity):**
-   - Không loại bỏ biểu tượng cảm xúc (emoji/emoticon).
-   - Tiến hành chuẩn hóa biểu tượng cảm xúc hoặc giữ nguyên mã hóa Unicode để mô hình trích xuất được thái độ mỉa mai, châm biếm hoặc ác ý.
+4. **Bảo tồn và chuẩn hóa sắc thái cảm xúc (Vấn đề xử lý Emoji):**
+   - **Nghịch lý trong nghiên cứu cơ sở:**
+     - Trong bài báo gốc (*Lưu et al., 2021, Mục 5*), nhóm tác giả khẳng định emoji là đặc trưng phân cực then chốt giúp nhận diện sắc thái tiêu cực hoặc công kích. Tuy nhiên, trong mã nguồn notebook gốc (`Paper/ViHSD_monolingual_Transformers.ipynb`), hàm `deEmojify` lại loại bỏ toàn bộ emoji bằng biểu thức chính quy.
+     - Hậu quả: Mô hình cơ sở bị tước đoạt hoàn toàn các tín hiệu cảm xúc phân cực, dẫn đến việc bỏ sót các phát ngôn thù ghét tinh vi.
+   - **Đặc thù thực tế trên tập dữ liệu ViHSD:**
+     - Thống kê cho thấy hơn 11% bình luận trong ViHSD có chứa emoji (tập Train: 11.38%, tập Dev: 11.04%, tập Test: 11.66%).
+     - Trong các mẫu OFFENSIVE và HATE, emoji thường đóng vai trò biểu đạt thái độ mỉa mai, châm biếm (sarcasm) như `😂`, `🤣`, `😏`, thái độ công kích thụ động kinh điển trên mạng xã hội Việt Nam như biểu tượng mặt cười đơ `🙂`, hoặc ác cảm cực đoan như `😡`, `🤬`, `🖕`. Khi loại bỏ emoji, các câu như *"Lan Hoa mấy đứa suốt ngày bảo người ta đạo này nọ cả đời chỉ núp dưới bóng của người khác 🙂"* sẽ mất hoàn toàn tính mỉa mai công kích.
+   - **Hai rào cản kỹ thuật cốt lõi:**
+     1. *Lỗi dính từ với PyVi:* Khi người dùng viết liền không khoảng cách (`ngu🙂`, `chó😂😂`), công cụ tách từ PyVi sẽ ghép sai emoji thành từ ghép lạ dạng `ngu_🙂`.
+     2. *Lỗi ngoài vốn từ (Out-of-Vocabulary - OOV) của PhoBERT:* PhoBERT được tiền huấn luyện trên báo chí chính thống (VnExpress, Dân Trí) và Wikipedia nên từ điển FastBPE 64K không chứa mã Unicode của hầu hết các emoji. Khi đưa trực tiếp vào PhoBERT Tokenizer, emoji bị phân mảnh thành nhiều byte-token rời rạc hoặc chuyển thành `<unk>`, làm loãng độ dài chuỗi và triệt tiêu ngữ nghĩa.
+   - **Giải pháp kỹ thuật (Quy trình 2 pha):**
+     1. *Pha 1 (Đệm khoảng trắng):* Thêm khoảng trắng trước và sau emoji để bảo vệ hình thái từ tiếng Việt trước khi đưa qua PyVi.
+     2. *Pha 2 (Ánh xạ ngữ nghĩa - Semantic Text Mapping):* Ánh xạ các emoji phổ biến thành các từ tố tiếng Việt có sẵn trong từ điển PhoBERT (ví dụ: `🙂` $\to$ `mặt_cười_mỉa_mai`, `😂` $\to$ `cười_ra_nước_mắt`, `😡` $\to$ `tức_giận`, `🖕` $\to$ `ngón_tay_thối`). Giải pháp này tương thích 100% với vốn từ vựng của PhoBERT mà không cần mở rộng kiến trúc embedding. Đối với emoji hiếm nằm ngoài từ điển ánh xạ, giữ lại dạng Unicode có khoảng cách để hạn chế mất mát thông tin.
 
 5. **Đồng bộ hóa quy trình phân đoạn từ tiếng Việt (Word Segmentation):**
    - Áp dụng công cụ tách từ PyVi (`ViTokenizer`) một cách nhất quán trên toàn bộ các tập dữ liệu `train.csv`, `dev.csv` và `test.csv`.
@@ -91,7 +101,7 @@ Mục tiêu của Checkpoint 2 là tái cấu trúc toàn diện quy trình hu�
 #### 1. Các nội dung triển khai chi tiết
 
 1. **Cơ chế lưu Checkpoint tối ưu theo Macro-F1:**
-   - Cấu hình tiến trình kiểm thử định kỳ sau mỗi epoch trên tập validation: `evaluation_strategy="epoch"`, `save_strategy="epoch"`.
+   - Cấu hình tiến trình kiểm thử định kỳ sau mỗi epoch trên tập validation: `eval_strategy="epoch"`, `save_strategy="epoch"`.
    - Kích hoạt cơ chế nạp lại trọng số tối ưu nhất: `load_best_model_at_end=True`, `metric_for_best_model="eval_macro_f1"`, `greater_is_better=True`.
    - Khắc phục tình trạng mô hình bị suy giảm hiệu năng ở các epoch cuối do overfitting vào lớp đa số.
 
@@ -229,23 +239,61 @@ Mục tiêu của Checkpoint 5 là tổng hợp đồng thời hai cơ chế: ph
 
 ---
 
+### Checkpoint 6: Khảo Sát Kiến Trúc Mô Hình Nền Tảng Mới (Alternative Backbone Model Architecture)
+
+Mục tiêu của Checkpoint 6 là kiểm chứng giả thuyết về năng lực biểu diễn của mô hình nền tảng: liệu việc nâng cấp kiến trúc backbone lên quy mô lớn hơn (`vinai/phobert-large` với 370M tham số, 24 transformer layers) hoặc sử dụng kiến trúc Transformer đa ngôn ngữ (`xlm-roberta-base`) có tạo ra bước đột phá về khả năng nhận diện các dạng phát ngôn thù ghét tinh vi, ẩn ý và ngữ cảnh phức tạp so với `vinai/phobert-base` hay không.
+
+#### 1. Các nội dung triển khai chi tiết
+
+1. **Khảo sát Mô hình nền tảng PhoBERT-large:**
+   - **Quy mô kiến trúc:** 24 layers, 16 attention heads, hidden dimension $d = 1024$ (so với 12 layers, 768 hidden dimension của PhoBERT-base).
+   - **Không gian vốn từ (Vocabulary):** Đồng bộ không gian từ vựng và thuật toán tách từ BPE với `vinai/phobert-base`, tái sử dụng trọn vẹn đường ống tiền xử lý chuẩn hóa tiếng Việt từ Checkpoint 1.
+   - **Năng lực biểu diễn:** Nâng cao độ nhạy đối với các bình luận châm biếm, mỉa mai, ngữ nghĩa ẩn dụ (sarcasm / veiled hate) nhờ số lượng tham số lớn gấp gần 3 lần ($370\text{M}$ vs $135\text{M}$).
+
+2. **Tối ưu hóa tài nguyên phần cứng cho Mô hình quy mô lớn:**
+   - Khi tăng kích thước mô hình lên gấp gần 3 lần và duy trì `max_length = 256`, tiêu thụ bộ nhớ VRAM của GPU tăng vọt.
+   - Điều chỉnh cấu hình batch size và tích lũy gradient:
+     - `per_device_train_batch_size = 8`
+     - `gradient_accumulation_steps = 4`
+     - Duy trì kích thước batch hiệu dụng: $8 \times 4 = 32$, đảm bảo tính tương đồng về động học tối ưu hóa so với các Checkpoint trước mà không gây tràn bộ nhớ (CUDA OOM) trên GPU Google Colab (T4 / V100 16GB).
+   - Kích hoạt Mixed Precision Training (`fp16 = True`).
+
+3. **Cân chỉnh Tốc độ học phân tầng cho Kiến trúc sâu (24 Layers):**
+   - Áp dụng tốc độ học nhỏ hơn cho backbone: $\text{lr}_{\text{backbone}} = 1 \times 10^{-5}$ (thay vì $2 \times 10^{-5}$) nhằm ngăn hiện tượng vỡ biểu diễn (catastrophic forgetting) của 24 tầng transformer đã tiền huấn luyện.
+   - Giữ nguyên tốc độ học cho Classification Head: $\text{lr}_{\text{head}} = 1 \times 10^{-4}$.
+   - Áp dụng lịch trình Cosine Annealing Scheduler kèm Linear Warmup 10% tổng số bước.
+
+4. **Tích hợp Hàm mất mát Tối ưu:**
+   - Kết hợp mô hình mới với hàm mất mát giải quyết mất cân bằng lớp tối ưu đã kiểm chứng từ Checkpoint 3 / Checkpoint 5 (Focal Loss với $\gamma = 2.0$ hoặc Weighted Focal Loss).
+   - Tự động nạp checkpoint tốt nhất theo `eval_macro_f1` với cơ chế Early Stopping (`patience = 2`).
+
+#### 2. Tiêu chí nghiệm thu Checkpoint 6
+
+- Module huấn luyện và notebook `Notebook/checkpoint06_alternative_model.ipynb` hoàn toàn tự chứa (100% self-contained).
+- Hoàn thành so sánh trực tiếp hiệu năng giữa `vinai/phobert-base` và mô hình nền tảng mới trên cùng tập kiểm tra chuẩn `test.csv`.
+- Phân tích chi tiết sự thay đổi chỉ số F1 trên từng lớp nhãn (đặc biệt là nhãn HATE và OFFENSIVE).
+- Xuất đầy đủ 5 tệp kết quả đầu ra chuẩn hóa vào `outputs/checkpoint06/`.
+
+---
+
 ## Ma Trận Thực Nghiệm Đối Sánh (Ablation Matrix)
 
 Bảng đối sánh tổng hợp sau đây được thiết kế để theo dõi tiến trình thực nghiệm qua từng Checkpoint:
 
-| Chỉ số / Cấu hình             | Checkpoint 0 (Baseline) |   Checkpoint 1    |     Checkpoint 2      |      Checkpoint 3       |      Checkpoint 4       |      Checkpoint 5       |
-| :---------------------------- | :---------------------: | :---------------: | :-------------------: | :---------------------: | :---------------------: | :---------------------: |
-| **Tiền xử lý dữ liệu**        |   Gốc (lọc Stopwords)   |   Đã chuẩn hóa    |     Đã chuẩn hóa      |      Đã chuẩn hóa       |      Đã chuẩn hóa       |      Đã chuẩn hóa       |
-| **Độ dài chuỗi (max_length)** |           100           |        100        |          256          |           256           |           256           |           256           |
-| **Chiến lược huấn luyện**     |    3 Epochs, CE Loss    | 3 Epochs, CE Loss | 8 Epochs + Best Model |  8 Epochs + Best Model  |  8 Epochs + Best Model  |  8 Epochs + Best Model  |
-| **Hàm mất mát**               |      Cross-Entropy      |   Cross-Entropy   |     Cross-Entropy     | Focal Loss ($\gamma=2$) | Weighted CE ($W_{ICF}$) |   Weighted Focal Loss   |
-| **Class Weight ($\alpha$)**   |          Không          |       Không       |         Không         |          Không          |           Có            |           Có            |
-| **Focal Factor ($\gamma$)**   |      $\gamma = 0$       |   $\gamma = 0$    |     $\gamma = 0$      |     $\gamma = 2.0$      |      $\gamma = 0$       | $\gamma \in [1.5, 2.0]$ |
-| **Validation Macro-F1**       |        Ghi nhận         |     Ghi nhận      |       Ghi nhận        |        Ghi nhận         |        Ghi nhận         |        Ghi nhận         |
-| **Test Macro-F1**             |        Ghi nhận         |     Ghi nhận      |       Ghi nhận        |        Ghi nhận         |        Ghi nhận         |        Ghi nhận         |
-| **F1 - Lớp CLEAN (0)**        |        Ghi nhận         |     Ghi nhận      |       Ghi nhận        |        Ghi nhận         |        Ghi nhận         |        Ghi nhận         |
-| **F1 - Lớp OFFENSIVE (1)**    |        Ghi nhận         |     Ghi nhận      |       Ghi nhận        |        Ghi nhận         |        Ghi nhận         |        Ghi nhận         |
-| **F1 - Lớp HATE (2)**         |        Ghi nhận         |     Ghi nhận      |       Ghi nhận        |        Ghi nhận         |        Ghi nhận         |        Ghi nhận         |
+| Chỉ số / Cấu hình             | Checkpoint 0 (Baseline) |   Checkpoint 1    |     Checkpoint 2      |      Checkpoint 3       |      Checkpoint 4       |      Checkpoint 5       |      Checkpoint 6 (Model Khác)       |
+| :---------------------------- | :---------------------: | :---------------: | :-------------------: | :---------------------: | :---------------------: | :---------------------: | :----------------------------------: |
+| **Mô hình nền tảng**          |      PhoBERT-base       |   PhoBERT-base    |     PhoBERT-base      |      PhoBERT-base       |      PhoBERT-base       |      PhoBERT-base       |       **PhoBERT-large** (370M)       |
+| **Tiền xử lý dữ liệu**        |   Gốc (lọc Stopwords)   |   Đã chuẩn hóa    |     Đã chuẩn hóa      |      Đã chuẩn hóa       |      Đã chuẩn hóa       |      Đã chuẩn hóa       |             Đã chuẩn hóa             |
+| **Độ dài chuỗi (max_length)** |           100           |        100        |          256          |           256           |           256           |           256           |                 256                  |
+| **Chiến lược huấn luyện**     |    3 Epochs, CE Loss    | 3 Epochs, CE Loss | 8 Epochs + Best Model |  8 Epochs + Best Model  |  8 Epochs + Best Model  |  8 Epochs + Best Model  | 8 Epochs + Diff LR (BS 8 x GA 4 = 32)|
+| **Hàm mất mát**               |      Cross-Entropy      |   Cross-Entropy   |     Cross-Entropy     | Focal Loss ($\gamma=2$) | Weighted CE ($W_{ICF}$) |   Weighted Focal Loss   |       Focal / Weighted Loss          |
+| **Class Weight ($\alpha$)**   |          Không          |       Không       |         Không         |          Không          |           Có            |           Có            |                 Tùy chọn             |
+| **Focal Factor ($\gamma$)**   |      $\gamma = 0$       |   $\gamma = 0$    |     $\gamma = 0$      |     $\gamma = 2.0$      |      $\gamma = 0$       | $\gamma \in [1.5, 2.0]$ |            $\gamma = 2.0$            |
+| **Validation Macro-F1**       |        Ghi nhận         |     Ghi nhận      |       Ghi nhận        |        Ghi nhận         |        Ghi nhận         |        Ghi nhận         |               Ghi nhận               |
+| **Test Macro-F1**             |        Ghi nhận         |     Ghi nhận      |       Ghi nhận        |        Ghi nhận         |        Ghi nhận         |        Ghi nhận         |               Ghi nhận               |
+| **F1 - Lớp CLEAN (0)**        |        Ghi nhận         |     Ghi nhận      |       Ghi nhận        |        Ghi nhận         |        Ghi nhận         |        Ghi nhận         |               Ghi nhận               |
+| **F1 - Lớp OFFENSIVE (1)**    |        Ghi nhận         |     Ghi nhận      |       Ghi nhận        |        Ghi nhận         |        Ghi nhận         |        Ghi nhận         |               Ghi nhận               |
+| **F1 - Lớp HATE (2)**         |        Ghi nhận         |     Ghi nhận      |       Ghi nhận        |        Ghi nhận         |        Ghi nhận         |        Ghi nhận         |               Ghi nhận               |
 
 ---
 
@@ -256,8 +304,15 @@ Mỗi Checkpoint sẽ được ánh xạ vào cấu trúc mô-đun của kho mã
 ```
 PhoBert-ViHSD/
 |-- Docs/
-|   |-- topics.md                         # Phân tích học thuật bài báo gốc và ý tưởng
-|   `-- roadmap.md                        # Kế hoạch chi tiết 5 Checkpoints
+|   |-- topics.md                                   # Phân tích học thuật bài báo gốc và ý tưởng
+|   |-- roadmap.md                                  # Kế hoạch tổng thể 6 Checkpoints
+|   |-- checkpoint_implementation_guide.md          # Hướng dẫn quy chuẩn triển khai kỹ thuật
+|   |-- pipeline_checkpoint01_preprocessing.md      # Đặc tả kỹ thuật Pipeline Checkpoint 1
+|   |-- pipeline_checkpoint02_training.md           # Đặc tả kỹ thuật Pipeline Checkpoint 2
+|   |-- pipeline_checkpoint03_focal_loss.md         # Đặc tả kỹ thuật Pipeline Checkpoint 3
+|   |-- pipeline_checkpoint04_class_weights.md      # Đặc tả kỹ thuật Pipeline Checkpoint 4
+|   |-- pipeline_checkpoint05_combined.md           # Đặc tả kỹ thuật Pipeline Checkpoint 5
+|   `-- pipeline_checkpoint06_alternative_backbone.md # Đặc tả kỹ thuật Pipeline Checkpoint 6
 |-- Pipeline/
 |   |-- preprocessing.py                  # Mã nguồn Checkpoint 1 (Làm sạch, Teencode, Tách từ)
 |   |-- dataset.py                        # Quản lý nạp dữ liệu PyTorch Dataset
@@ -266,11 +321,16 @@ PhoBert-ViHSD/
 |   `-- evaluate.py                       # Đánh giá chỉ số, trích xuất Confusion Matrix
 |-- Scripts/
 |   |-- preprocess_data.py                # Script chạy xử lý dữ liệu hàng loạt
-|   `-- compute_class_weights.py          # Script tính toán vector trọng số lớp
+|   |-- compute_class_weights.py          # Script tính toán vector trọng số lớp
+|   |-- create_checkpoint01_notebook.py   # Script khởi tạo notebook Checkpoint 1
+|   |-- create_checkpoint02_notebook.py   # Script khởi tạo notebook Checkpoint 2
+|   |-- create_checkpoint03_notebook.py   # Script khởi tạo notebook Checkpoint 3
+|   `-- create_checkpoint06_notebook.py   # Script khởi tạo notebook Checkpoint 6
 `-- Notebook/
     |-- checkpoint01_data_preprocessing.ipynb       # Thực nghiệm Checkpoint 1
     |-- checkpoint02_training_strategies.ipynb      # Thực nghiệm Checkpoint 2
     |-- checkpoint03_focal_loss.ipynb               # Thực nghiệm Checkpoint 3
     |-- checkpoint04_class_weights.ipynb            # Thực nghiệm Checkpoint 4
-    `-- checkpoint05_combined_focal_classweight.ipynb # Thực nghiệm Checkpoint 5 và Ablation Study
+    |-- checkpoint05_combined_focal_classweight.ipynb # Thực nghiệm Checkpoint 5 và Ablation Study
+    `-- checkpoint06_alternative_model.ipynb        # Thực nghiệm Checkpoint 6 (PhoBERT-large / Alternative Model)
 ```

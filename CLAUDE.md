@@ -15,7 +15,7 @@ Primary evaluation metric is **Macro-F1** due to severe class imbalance.
 
 ## Repository Structure
 
-- `data/`: Contains dataset files (`train.csv`, `dev.csv`, `test.csv` with columns `free_text`, `label_id`) and normalization resources (`teencode.json`, `teencode.xlsx`, `teencode.csv`).
+- `data/`: Contains dataset files (`train.csv`, `dev.csv`, `test.csv` with columns `free_text`, `label_id`) and normalization resources (`teencode.csv`, `emojis.csv`, `teencode.json`, `teencode.xlsx`).
 - `Paper/`: Reference publication (`2021_Luu_ViHSD_A_Large_Scale_Dataset.pdf`) and original baseline notebook (`ViHSD_monolingual_Transformers.ipynb`).
 - `Notebook/`: Jupyter notebooks for experiments and modeling.
 - `Pipeline/`: Modular NLP pipelines (preprocessing, feature extraction, training, evaluation).
@@ -52,6 +52,14 @@ uv run python Scripts/<script_name>.py
    - Declare hyperparameters and input variables at the top of relevant cells.
    - Always run pre-pipeline and post-pipeline data verification checks (assert shapes, check nulls).
    - Place non-trivial helper logic and heavy pre-processing routines in standalone scripts within `Scripts/`.
+   - **Self-contained Notebooks:** Embed processing routines (preprocessing classes, Dataset definitions, evaluation metrics, and plotting routines) directly within the notebook cells; do not import or reference external `.py` modules so that notebooks can run completely standalone on Google Colab.
+   - **In-Place Notebook Modification:** When modifying notebooks (`.ipynb`), always edit the specific target cells directly (preserving cell outputs and execution history); do not regenerate or overwrite the entire notebook from a script.
+   - **Mandatory Artifacts Export:** Every checkpoint notebook must conclude with an Artifacts Export section saving 4 standardized files into `outputs/checkpointXX/`:
+     1. `predictions.csv`: Contains exact columns `id`, `text`, `ground_truth`, `predicted_label`.
+     2. `confusion_matrix_checkpointXX.png` & `confusion_matrix.csv`: Academic heatmap visualization and CSV table.
+     3. `evaluation_scores.csv`: Key summary metrics table (`metric, value` for `macro_f1, micro_f1, accuracy, f1_clean, f1_offensive, f1_hate`).
+     4. `classification_report.csv`: Standardized per-class metrics (`class, precision, recall, f1_score, support` with integer support and clean accuracy row).
+   - **Modern Transformers Compatibility:** Always use `eval_strategy='epoch'` (not deprecated `evaluation_strategy`), omit deprecated `no_cuda`, and use `AutoTokenizer.from_pretrained('vinai/phobert-base', use_fast=False)`.
 
 3. **Domain-Specific NLP Rules:**
    - **Do not strip stopwords indiscriminately:** Personal pronouns (`mày`, `tao`, `nó`, `thằng`, `con`) and negation terms (`không`, `chẳng`, `chả`) carry essential semantics for detecting hate speech targets and stance.
