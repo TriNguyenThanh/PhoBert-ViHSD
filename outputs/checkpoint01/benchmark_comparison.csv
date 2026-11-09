@@ -1,0 +1,3 @@
+Mô Hình / Cấu Hình,Tiền Xử Lý,Độ Dài Chuỗi (max_length),Số Epoch,Hàm Mất Mát,Macro-F1,F1 Clean,F1 Offensive,F1 Hate
+Baseline (Gốc),"Lọc Stopwords, deEmojify",100,2,Cross-Entropy,0.6276,0.902,0.461,0.52
+Checkpoint 1 (Tiền xử lý chuẩn hóa),"Giữ Stopwords/Pronouns, Emoji 2 pha, Teencode, PyVi",100,2,Cross-Entropy,0.6574331972776472,0.9407807382490927,0.4199743918053777,0.6115444617784711

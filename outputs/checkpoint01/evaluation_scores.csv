@@ -1,0 +1,7 @@
+metric,value
+macro_f1,0.6574
+micro_f1,0.8787
+accuracy,0.8787
+f1_clean,0.9408
+f1_offensive,0.42
+f1_hate,0.6115

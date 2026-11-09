@@ -1,0 +1,5 @@
+Mô Hình / Cấu Hình,Tiền Xử Lý,Độ Dài Chuỗi,Số Epoch,Tối Ưu Hóa,Hàm Mất Mát,Accuracy,Macro-Precision,Macro-Recall,Macro-F1,F1 Clean,F1 Offensive,F1 Hate
+Baseline (Gốc),"Lọc Stopwords, deEmojify",100,2,"LR cố định (2e-5), Linear Decay",Cross-Entropy,0.835,0.64,0.62,0.6276,0.902,0.461,0.52
+Checkpoint 1 (Tiền xử lý),"Giữ Stopwords/Pronouns, Emoji 2 pha, Teencode, PyVi",100,2,"LR cố định (2e-5), Linear Decay",Cross-Entropy,0.8787,0.652,0.663,0.6574,0.9408,0.42,0.6115
+Checkpoint 2 (Chiến lược huấn luyện),"Giữ Stopwords/Pronouns, Emoji 2 pha, Teencode, PyVi",256,8 (Early Stopping),"Phân tầng LR (Backbone 2e-5, Head 1e-4), Cosine, Best Macro-F1",Cross-Entropy,0.8726,0.668,0.6793,0.673,0.9374,0.4498,0.6317
+Checkpoint 3 (Focal Loss),"Giữ Stopwords/Pronouns, Emoji 2 pha, Teencode, PyVi",256,8 (Early Stopping),"Phân tầng LR (Backbone 2e-5, Head 1e-4), Cosine, Best Macro-F1",Focal Loss (gamma=2.0),0.8759,0.6838,0.6435,0.6618,0.9396,0.4526,0.5932
