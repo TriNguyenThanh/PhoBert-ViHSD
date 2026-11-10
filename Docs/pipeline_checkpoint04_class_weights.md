@@ -73,6 +73,17 @@ Trong đó $\beta \in [0.99, 0.9999]$ là siêu tham số đại diện cho tỷ
 Trọng số tương ứng:
 $$w_c \propto \frac{1}{E_{N_c}} = \frac{1 - \beta}{1 - \beta^{N_c}}$$
 
+### 3.4. Phương pháp 4: Trọng số lũy thừa làm dịu (Mild Power-Law Class Weights)
+Nhằm giải quyết triệt để sự đánh đổi mất cân bằng (Precision bị sụt giảm quá mạnh khi dùng căn bậc hai hoặc ICF), phương pháp Mild Power-Law sử dụng hàm số mũ làm dịu $\rho \in (0, 0.5]$ (mặc định $\rho = 0.25$ - căn bậc 4):
+$$raw_c = \left(\frac{N}{N_c}\right)^\rho$$
+Sau đó chuẩn hóa vector để giá trị trung bình bằng 1:
+$$\hat{w}_c = \frac{raw_c}{\frac{1}{K}\sum_{j=0}^{K-1} raw_j}$$
+
+*Ưu điểm kỹ thuật:*
+- Tỷ lệ chênh lệch phạt giữa lớp thiểu số và đa số giảm xuống mức lý tưởng: $\frac{w_{\text{OFFENSIVE}}}{w_{\text{CLEAN}}} \approx 1.88$ lần (thay vì $3.52$ lần của căn bậc hai và $12.39$ lần của ICF).
+- Cung cấp lực phạt vừa đủ để mô hình chú ý đến các mẫu OFFENSIVE/HATE khó, nhưng không làm mô hình "đoán mò" gây vỡ Precision của lớp CLEAN.
+- Vector trên tập ViHSD: $W \approx [0.6599, 1.2379, 1.1022]$.
+
 ---
 
 ## 4. Cài Đặt Kỹ Thuật Chi Tiết
@@ -147,8 +158,9 @@ Thực nghiệm so sánh 3 phương pháp tính trọng số trên cùng một c
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Không trọng số (CP2)** | $[1.00, 1.00, 1.00]$ | Ghi nhận | Ghi nhận | Ghi nhận | Ghi nhận | Ghi nhận |
 | **Nghịch đảo tần suất (ICF)**| $[0.40, 4.98, 3.14]$ | Ghi nhận | Ghi nhận | Ghi nhận | Ghi nhận | Ghi nhận |
-| **Làm mịn căn bậc hai** | Ghi nhận giá trị | Ghi nhận | Ghi nhận | Ghi nhận | Ghi nhận | Ghi nhận |
-| **Mẫu hiệu dụng ($\beta=0.999$)**| Ghi nhận giá trị | Ghi nhận | Ghi nhận | Ghi nhận | Ghi nhận | Ghi nhận |
+| **Làm mịn căn bậc hai** | $[0.41, 1.44, 1.14]$ | Ghi nhận | 0.6641 | 0.9300 | 0.4535 | 0.6087 |
+| **Mẫu hiệu dụng ($\beta=0.999$)**| $[0.90, 1.13, 0.98]$ | Ghi nhận | Ghi nhận | Ghi nhận | Ghi nhận | Ghi nhận |
+| **Mild Power-Law ($\rho=0.25$)**| $[0.66, 1.24, 1.10]$ | Ghi nhận | Ghi nhận | Ghi nhận | Ghi nhận | Ghi nhận |
 
 ---
 

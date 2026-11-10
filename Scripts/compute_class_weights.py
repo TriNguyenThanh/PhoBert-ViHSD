@@ -5,8 +5,8 @@ import pandas as pd
 import torch
 
 
-# Hàm tính toán vector trọng số lớp dựa trên 3 phương pháp khác nhau cho bài toán ViHSD
-def compute_class_weights(train_csv_path, method="icf", beta=0.999):
+# Hàm tính toán vector trọng số lớp dựa trên các phương pháp khác nhau cho bài toán ViHSD
+def compute_class_weights(train_csv_path, method="icf", beta=0.999, power=0.25):
     """Tính toán vector trọng số phân bố lớp (Class Weights) cho tập dữ liệu huấn luyện.
 
     Các phương pháp hỗ trợ:
@@ -23,10 +23,16 @@ def compute_class_weights(train_csv_path, method="icf", beta=0.999):
        w_c = 1 / E_c, sau đó chuẩn hóa sum(w) = K
        Dựa trên lý thuyết thông tin biên và thể tích đặc trưng hiệu dụng.
 
+    4. 'power' / 'mild_power' (Mild Power-Law Class Weights):
+       w_c = (N / N_c)^rho, sau đó chuẩn hóa mean(w) = 1.0 (mặc định rho = 0.25)
+       Làm dịu tỷ lệ phạt giữa các lớp thiểu số và đa số (chỉ ~1.8x đến 2.0x), giúp kéo Recall
+       mà không làm suy giảm nghiêm trọng Precision của lớp CLEAN.
+
     Tham số:
         train_csv_path: Đường dẫn tệp CSV dữ liệu huấn luyện (chứa cột 'label_id').
-        method: Phương pháp tính toán ('icf', 'smoothed', 'effective').
+        method: Phương pháp tính toán ('icf', 'smoothed', 'effective', 'power').
         beta: Siêu tham số cho phương pháp mẫu hiệu dụng (mặc định 0.999).
+        power: Hệ số mũ rho cho phương pháp Mild Power-Law (mặc định 0.25).
 
     Trả về:
         torch.Tensor chứa vector trọng số kích thước (K,) kiểu float32.
@@ -57,9 +63,13 @@ def compute_class_weights(train_csv_path, method="icf", beta=0.999):
         effective_num = (1.0 - np.power(beta, counts_float)) / (1.0 - beta)
         raw_weights = 1.0 / effective_num
         weights = (raw_weights / np.sum(raw_weights)) * num_classes
+    elif method in ["power", "mild_power"]:
+        # Phương pháp Mild Power-Law (Lũy thừa làm dịu)
+        raw_weights = np.power(total_samples / counts_float, power)
+        weights = raw_weights / np.mean(raw_weights)
     else:
         raise ValueError(
-            f"Phương pháp không hợp lệ: '{method}'. Chỉ chấp nhận 'icf', 'smoothed', 'effective'."
+            f"Phương pháp không hợp lệ: '{method}'. Chỉ chấp nhận 'icf', 'smoothed', 'effective', 'power'."
         )
 
     return torch.tensor(weights, dtype=torch.float32), classes, counts
@@ -78,7 +88,7 @@ def main():
     parser.add_argument(
         "--method",
         type=str,
-        choices=["icf", "smoothed", "effective", "all"],
+        choices=["icf", "smoothed", "effective", "power", "all"],
         default="all",
         help="Phương pháp tính toán trọng số (mặc định: all)",
     )
@@ -88,11 +98,21 @@ def main():
         default=0.999,
         help="Siêu tham số beta cho phương pháp effective (mặc định: 0.999)",
     )
+    parser.add_argument(
+        "--power",
+        type=float,
+        default=0.25,
+        help="Hệ số mũ rho cho phương pháp mild power-law (mặc định: 0.25)",
+    )
 
     args = parser.parse_args()
     class_names = {0: "CLEAN", 1: "OFFENSIVE", 2: "HATE"}
 
-    methods_to_run = ["icf", "smoothed", "effective"] if args.method == "all" else [args.method]
+    methods_to_run = (
+        ["icf", "smoothed", "effective", "power"]
+        if args.method == "all"
+        else [args.method]
+    )
 
     print("=" * 70)
     print("TÍNH TOÁN VECTOR TRỌNG SỐ LỚP CHO TẬP DỮ LIỆU VIETNAMESE HATE SPEECH (ViHSD)")
