@@ -224,3 +224,5 @@ __marimo__/
 
 # GitNexus
 .gitnexus/
+
+/outputs
