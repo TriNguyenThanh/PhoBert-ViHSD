@@ -2,7 +2,7 @@
 
 Dự án: Nâng cao hiệu năng mô hình phát hiện phát ngôn thù ghét trên mạng xã hội tiếng Việt (ViHSD - Vietnamese Hate Speech Detection).
 
-Tài liệu này xác lập lộ trình kỹ thuật và các mốc thực nghiệm (Checkpoints 01 đến 06) có tính kế thừa và đối chứng khoa học chặt chẽ, hướng đến giải quyết hai thách thức cốt lõi: đặc thù nhiễu ngôn ngữ mạng xã hội và hiện tượng mất cân bằng phân bố nhãn nghiêm trọng trong tập dữ liệu ViHSD.
+Tài liệu này xác lập lộ trình kỹ thuật và các mốc thực nghiệm (Checkpoints 01 đến 07) có tính kế thừa và đối chứng khoa học chặt chẽ, hướng đến giải quyết hai thách thức cốt lõi: đặc thù nhiễu ngôn ngữ mạng xã hội và hiện tượng mất cân bằng phân bố nhãn nghiêm trọng trong tập dữ liệu ViHSD.
 
 ---
 
@@ -17,7 +17,7 @@ Tài liệu này xác lập lộ trình kỹ thuật và các mốc thực nghi�
 
 ---
 
-## 2. Sơ Đồ Kiến Trúc Lộ Trình 6 Checkpoint Tiến Bộ (Progressive Roadmap)
+## 2. Sơ Đồ Kiến Trúc Lộ Trình 7 Checkpoint Tiến Bộ (Progressive Roadmap)
 
 ```
 [Mô hình Baseline Gốc (Lưu et al., 2021)]
@@ -45,13 +45,15 @@ Baseline + Cân Bằng Lớp Tĩnh   Baseline + Cân Bằng Lớp Động
                       v
                [Checkpoint 05]
                Tích Hợp Toàn Diện 4 Giải Pháp Nâng Cấp
-               (CP01 + CP02 + CP03 + CP04 trên vinai/phobert-base)
+               (CP01 + CP02 + CP03 + CP04 trên vinai/phobert-base với PyVi)
                (Weighted Focal Loss: alpha Smoothed CW + gamma=1.5)
                       |
-                      v
-               [Checkpoint 06]
-               Hiện Đại Hóa Kiến Trúc Mô Hình (Model Modernization)
-               (Di chuyển toàn bộ pipeline CP05 sang vinai/phobert-base-v2)
+       +--------------+--------------+
+       |                             |
+       v                             v
+[Checkpoint 06]               [Checkpoint 07]
+Hiện Đại Hóa Kiến Trúc         Ablation Study: Tách Từ VnCoreNLP
+(PhoBERT-base-v2 Modernization) (CP05 thay PyVi bằng py_vncorenlp)
 ```
 
 ---
@@ -124,31 +126,42 @@ Baseline + Cân Bằng Lớp Tĩnh   Baseline + Cân Bằng Lớp Động
 - **Cấu hình mô hình:** `vinai/phobert-base-v2`, max_length = 256, 8 epochs, Weighted Focal Loss.
 - **Thư mục đầu ra:** `outputs/checkpoint06/`
 
+### Checkpoint 07: Khảo Sát Bóc Tách Phân Đoạn Từ VnCoreNLP (VnCoreNLP Segmentation Ablation)
+- **Tên notebook:** `Notebook/checkpoint07_vncorenlp_segmentation.ipynb`
+- **Mục tiêu khoa học:** Khảo sát bóc tách thành phần (Ablation Study) về vai trò của công cụ tách từ: so sánh bộ tách từ chính thức `py_vncorenlp` (`RDRsegmenter`) của VinAI Research so với bộ tách từ `pyvi` trên toàn bộ pipeline tối ưu của Checkpoint 05.
+- **Kỹ thuật cốt lõi:**
+  - Thay thế `pyvi` bằng `py_vncorenlp` (`VnCoreNLP(annotators=['wseg'])`) để đạt độ tương thích hoàn toàn 100% với không gian từ vựng FastBPE của mô hình PhoBERT gốc.
+  - Kế thừa 100% các thành phần tối ưu từ Checkpoint 05: `vinai/phobert-base`, chuẩn hóa teencode, ánh xạ emoji 2 pha, thu gọn ký tự, bảo tồn đại từ/từ phủ định, `max_length = 256`, phân tầng tốc độ học, Cosine Warmup, 8 epochs, Early Stopping, Weighted Focal Loss ($\alpha$ Smoothed CW, $\gamma = 1.5$).
+  - Xác lập dữ liệu thực nghiệm trả lời câu hỏi: *Việc sử dụng đúng bộ tách từ gốc chính thức của PhoBERT có nâng cao hiệu năng Macro-F1 so với giải pháp PyVi nhẹ hơn hay không?*
+- **Cấu hình mô hình:** `vinai/phobert-base`, max_length = 256, 8 epochs, Weighted Focal Loss, công cụ tách từ `py_vncorenlp`.
+- **Thư mục đầu ra:** `outputs/checkpoint07/`
+
 ---
 
 ## 4. Bảng Ma Trận Đối Sánh Thực Nghiệm (Cumulative Ablation Matrix)
 
-| Chỉ số / Đặc điểm thực nghiệm | Baseline Gốc (2021) | Checkpoint 01 | Checkpoint 02 | Checkpoint 03 | Checkpoint 04 | Checkpoint 05 (Kết hợp v1) | Checkpoint 06 (Hiện đại hóa v2) |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Mô hình nền tảng (Backbone)** | `phobert-base` | `phobert-base` | `phobert-base` | `phobert-base` | `phobert-base` | `phobert-base` | **`phobert-base-v2`** |
-| **Tiền xử lý văn bản** | Gốc (lọc từ dừng) | Thô (giữ nguyên) | Thô (giữ nguyên) | **ViHSDPreprocessor** | Thô (giữ nguyên) | **ViHSDPreprocessor** | **ViHSDPreprocessor** |
-| **Độ dài ngữ cảnh (max_len)** | 100 | 100 | 100 | 100 | **256** | **256** | **256** |
-| **Số epochs tối đa** | 2 | 2 | 2 | 2 | **8 (Early Stopping)** | **8 (Early Stopping)** | **8 (Early Stopping)** |
-| **Cơ chế tối ưu hóa tốc độ học** | AdamW cố định | AdamW cố định | AdamW cố định | AdamW cố định | **Diff LR + Cosine** | **Diff LR + Cosine** | **Diff LR + Cosine** |
-| **Hàm mất mát áp dụng** | Cross-Entropy | **Weighted CE** | **Focal Loss** | Cross-Entropy | Cross-Entropy | **Weighted Focal Loss** | **Weighted Focal Loss** |
-| **Vector trọng số tĩnh $\alpha$** | Không | **Smoothed CW** | Không | Không | Không | **Smoothed CW** | **Smoothed CW** |
-| **Tham số điều chế $\gamma$** | $\gamma = 0$ | $\gamma = 0$ | **$\gamma = 1.5$** | $\gamma = 0$ | $\gamma = 0$ | **$\gamma = 1.5$** | **$\gamma = 1.5$** |
-| **Macro-F1 (Thước đo cốt lõi)** | 0.6276 | 0.6493 | 0.6528 | 0.6552 | 0.6645 | 0.6749 | **0.6865** |
-| **F1 - Lớp CLEAN (0)** | 0.9020 | 0.9125 | 0.9140 | 0.9150 | 0.9210 | 0.9250 | **0.9310** |
-| **F1 - Lớp OFFENSIVE (1)** | 0.4610 | 0.4912 | 0.4950 | 0.5010 | 0.5180 | 0.5320 | **0.5510** |
-| **F1 - Lớp HATE (2)** | 0.5200 | 0.5442 | 0.5495 | 0.5496 | 0.5545 | 0.5678 | **0.5780** |
+| Chỉ số / Đặc điểm thực nghiệm | Baseline Gốc (2021) | Checkpoint 01 | Checkpoint 02 | Checkpoint 03 | Checkpoint 04 | Checkpoint 05 (Kết hợp PyVi) | Checkpoint 06 (PhoBERT-v2) | Checkpoint 07 (Kết hợp VnCoreNLP) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Mô hình nền tảng (Backbone)** | `phobert-base` | `phobert-base` | `phobert-base` | `phobert-base` | `phobert-base` | `phobert-base` | **`phobert-base-v2`** | `phobert-base` |
+| **Công cụ tách từ (Segmenter)** | Không (fastBPE thô) | Không | Không | `pyvi` | Không | `pyvi` | `pyvi` | **`py_vncorenlp` (RDR)** |
+| **Tiền xử lý văn bản** | Gốc (lọc từ dừng) | Thô (giữ nguyên) | Thô (giữ nguyên) | **ViHSDPreprocessor** | Thô (giữ nguyên) | **ViHSDPreprocessor** | **ViHSDPreprocessor** | **ViHSDPreprocessor** |
+| **Độ dài ngữ cảnh (max_len)** | 100 | 100 | 100 | 100 | **256** | **256** | **256** | **256** |
+| **Số epochs tối đa** | 2 | 2 | 2 | 2 | **8 (Early Stopping)** | **8 (Early Stopping)** | **8 (Early Stopping)** | **8 (Early Stopping)** |
+| **Cơ chế tối ưu hóa tốc độ học** | AdamW cố định | AdamW cố định | AdamW cố định | AdamW cố định | **Diff LR + Cosine** | **Diff LR + Cosine** | **Diff LR + Cosine** | **Diff LR + Cosine** |
+| **Hàm mất mát áp dụng** | Cross-Entropy | **Weighted CE** | **Focal Loss** | Cross-Entropy | Cross-Entropy | **Weighted Focal Loss** | **Weighted Focal Loss** | **Weighted Focal Loss** |
+| **Vector trọng số tĩnh $\alpha$** | Không | **Smoothed CW** | Không | Không | Không | **Smoothed CW** | **Smoothed CW** | **Smoothed CW** |
+| **Tham số điều chế $\gamma$** | $\gamma = 0$ | $\gamma = 0$ | **$\gamma = 1.5$** | $\gamma = 0$ | $\gamma = 0$ | **$\gamma = 1.5$** | **$\gamma = 1.5$** | **$\gamma = 1.5$** |
+| **Macro-F1 (Thước đo cốt lõi)** | 0.6276 | 0.6493 | 0.6528 | 0.6552 | 0.6645 | 0.6749 | **0.6865** | Đang thực nghiệm |
+| **F1 - Lớp CLEAN (0)** | 0.9020 | 0.9125 | 0.9140 | 0.9150 | 0.9210 | 0.9250 | **0.9310** | Đang thực nghiệm |
+| **F1 - Lớp OFFENSIVE (1)** | 0.4610 | 0.4912 | 0.4950 | 0.5010 | 0.5180 | 0.5320 | **0.5510** | Đang thực nghiệm |
+| **F1 - Lớp HATE (2)** | 0.5200 | 0.5442 | 0.5495 | 0.5496 | 0.5545 | 0.5678 | **0.5780** | Đang thực nghiệm |
 
 ---
 
 ## 5. Quy Chuẩn Xuất Kết Quả Bắt Buộc (Mandatory Artifacts Export)
 
-Để đảm bảo tính minh bạch học thuật và khả năng tái lập thực nghiệm, toàn bộ 6 checkpoint notebook khi thực thi đều tự động xuất 4 tệp chuẩn hóa vào `outputs/checkpointXX/`:
+Để đảm bảo tính minh bạch học thuật và khả năng tái lập thực nghiệm, toàn bộ 7 checkpoint notebook khi thực thi đều tự động xuất 4 tệp chuẩn hóa vào `outputs/checkpointXX/`:
 1. `predictions.csv`: Chứa đầy đủ các cột `id`, `text`, `ground_truth`, `predicted_label`.
 2. `confusion_matrix_checkpointXX.png` & `confusion_matrix.csv`: Biểu đồ nhiệt Seaborn và bảng dữ liệu ma trận nhầm lẫn.
 3. `evaluation_scores.csv`: Bảng tổng hợp các chỉ số đánh giá `accuracy`, `macro_precision`, `macro_recall`, `macro_f1`, `micro_f1` và F1 từng lớp.
-4. `classification_report.csv`: Bảng chi tiết độ chuẩn xác, độ nhạy, F1 và số lượng mẫu của từng lớp với trường support dạng số nguyên.
+4. `classification_report.csv`: Báo cáo chi tiết độ chuẩn xác, độ nhạy, F1 và số lượng mẫu của từng lớp với trường support dạng số nguyên.
