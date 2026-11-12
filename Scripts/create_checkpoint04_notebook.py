@@ -444,50 +444,9 @@ def create_checkpoint04_notebook():
         "print(f'Đã lưu ma trận nhầm lẫn tại: {cm_output_path}')"
     ])
 
-    # Cell 20: Markdown Section 9
+    # Cell 20: Markdown Section 9 (Mandatory Artifacts Export)
     add_markdown([
-        "## 9. Bảng Đối Sánh Hiệu Năng So Với Baseline và Các Checkpoint Trước"
-    ])
-
-    # Cell 21: Benchmark Comparison Table
-    add_code([
-        "comparison_data = {",
-        "    'Mô Hình / Checkpoint': [",
-        "        'Baseline Gốc (Lưu et al., 2021)',",
-        "        'Checkpoint 01 (Baseline + Smoothed CW)',",
-        "        'Checkpoint 02 (Baseline + Focal Loss gamma = 1.5)',",
-        "        'Checkpoint 03 (Baseline + Tiền xử lý dữ liệu)',",
-        "        'Checkpoint 04 (Tối ưu hóa huấn luyện nâng cao - Hiện tại)',",
-        "    ],",
-        "    'Độ Dài': [100, 100, 100, 100, 256],",
-        "    'Số Epochs': [2, 2, 2, 2, 8],",
-        "    'Hàm Mất Mát': [",
-        "        'Cross-Entropy',",
-        "        'Weighted Cross-Entropy (Smoothed)',",
-        "        'Focal Loss (gamma = 1.5)',",
-        "        'Cross-Entropy',",
-        "        'Cross-Entropy',",
-        "    ],",
-        "    'Accuracy': [0.8350, 0.8521, 0.8540, 0.8560, round(float(results['accuracy']), 4)],",
-        "    'Macro-Precision': [0.6400, 0.6582, 0.6610, 0.6635, round(float(results['macro_precision']), 4)],",
-        "    'Macro-Recall': [0.6200, 0.6415, 0.6450, 0.6480, round(float(results['macro_recall']), 4)],",
-        "    'Macro-F1': [0.6276, 0.6493, 0.6528, 0.6552, round(float(results['macro_f1']), 4)],",
-        "    'F1 Clean': [0.9020, 0.9125, 0.9140, 0.9150, round(float(results['per_class_f1']['clean']), 4)],",
-        "    'F1 Offensive': [0.4610, 0.4912, 0.4950, 0.5010, round(float(results['per_class_f1']['offensive']), 4)],",
-        "    'F1 Hate': [0.5200, 0.5442, 0.5495, 0.5496, round(float(results['per_class_f1']['hate']), 4)],",
-        "}",
-        "",
-        "df_comparison = pd.DataFrame(comparison_data)",
-        "comparison_csv_path = os.path.join(outputs_dir, 'benchmark_comparison.csv')",
-        "df_comparison.to_csv(comparison_csv_path, index=False)",
-        "",
-        "print('BẢNG ĐỐI SÁNH HIỆU NĂNG:')",
-        "print(df_comparison.to_string(index=False))"
-    ])
-
-    # Cell 22: Markdown Section 10
-    add_markdown([
-        "## 10. Xuất Các Tệp Kết Quả Chuẩn Hóa (Mandatory Artifacts Export)"
+        "## 9. Xuất Các Tệp Kết Quả Chuẩn Hóa (Mandatory Artifacts Export)"
     ])
 
     # Cell 23: Mandatory Artifacts Export

@@ -44,6 +44,12 @@ def parse_args():
         default=False,
         help="Chuyển toàn bộ văn bản về chữ thường (mặc định giữ nguyên chữ hoa để phục vụ PhoBERT)",
     )
+    parser.add_argument(
+        "--clean_leakage",
+        action="store_true",
+        default=True,
+        help="Khử trùng lặp nội bộ và triệt tiêu rò rỉ dữ liệu (Data Leakage) từ Train sang Dev/Test",
+    )
     return parser.parse_args()
 
 
@@ -77,17 +83,41 @@ def main():
 
     os.makedirs(args.output_dir, exist_ok=True)
 
+    train_file = os.path.join(args.data_dir, "train.csv")
+    dev_file = os.path.join(args.data_dir, "dev.csv")
+    test_file = os.path.join(args.data_dir, "test.csv")
+
+    dev_df = pd.read_csv(dev_file) if os.path.exists(dev_file) else None
+    test_df = pd.read_csv(test_file) if os.path.exists(test_file) else None
+
     splits = ["train", "dev", "test"]
     for split in splits:
         input_file = os.path.join(args.data_dir, f"{split}.csv")
         output_file = os.path.join(args.output_dir, f"{split}_processed.csv")
 
-        if os.path.exists(input_file):
+        if not os.path.exists(input_file):
+            print(f"Cảnh báo: Không tìm thấy tập tin {input_file}")
+            continue
+
+        if split == "train" and args.clean_leakage and (dev_df is not None or test_df is not None):
+            print("Áp dụng khử trùng lặp và triệt tiêu rò rỉ dữ liệu (Data Leakage) cho tập Train...")
+            raw_train = pd.read_csv(input_file)
+            cleaned_train = preprocessor.clean_and_deduplicate(
+                raw_train, dev_df=dev_df, test_df=test_df, verbose=True
+            )
+            initial_count = len(raw_train)
+            texts, labels = preprocessor.transform_dataset(
+                cleaned_train, text_col="free_text", label_col="label_id", lowercased=args.lowercased
+            )
+            df_processed = pd.DataFrame({"free_text": texts, "label_id": labels})
+            df_processed.to_csv(output_file, index=False, encoding="utf-8")
+            print(
+                f"Đã xử lý và lưu vào: {output_file} (Ban đầu: {initial_count}, Sạch: {len(cleaned_train)}, Sau biến đổi: {len(df_processed)})"
+            )
+        else:
             process_and_save(
                 preprocessor, input_file, output_file, lowercased=args.lowercased
             )
-        else:
-            print(f"Cảnh báo: Không tìm thấy tập tin {input_file}")
 
 
 if __name__ == "__main__":

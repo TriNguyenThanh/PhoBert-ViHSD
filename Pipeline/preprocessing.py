@@ -1,5 +1,6 @@
 import os
 import re
+import unicodedata
 import pandas as pd
 import numpy as np
 
@@ -147,3 +148,132 @@ class ViHSDPreprocessor:
         y = filtered_df[label_col].to_numpy()
 
         return X, y
+
+    # Chuẩn hóa chuỗi văn bản phục vụ so khớp và phát hiện trùng lặp/rò rỉ dữ liệu
+    @staticmethod
+    def normalize_matching_key(text):
+        if not isinstance(text, str):
+            text = str(text) if text is not None else ""
+        text = unicodedata.normalize("NFC", text).strip().lower()
+        return re.sub(r"\s+", " ", text)
+
+    # Kiểm kê toàn diện hiện tượng trùng lặp nội bộ và rò rỉ dữ liệu (Data Leakage) sang Dev/Test
+    @classmethod
+    def audit_duplicates_and_leakage(
+        cls,
+        train_df,
+        dev_df=None,
+        test_df=None,
+        text_col="free_text",
+        label_col="label_id",
+    ):
+        train_valid = train_df.dropna(subset=[text_col, label_col]).copy()
+        train_valid[label_col] = train_valid[label_col].astype(int)
+        train_valid["__norm_key__"] = train_valid[text_col].apply(cls.normalize_matching_key)
+
+        dev_keys = (
+            set(dev_df[text_col].dropna().apply(cls.normalize_matching_key))
+            if dev_df is not None
+            else set()
+        )
+        test_keys = (
+            set(test_df[text_col].dropna().apply(cls.normalize_matching_key))
+            if test_df is not None
+            else set()
+        )
+        eval_keys = dev_keys | test_keys
+
+        leak_dev = train_valid["__norm_key__"].isin(dev_keys)
+        leak_test = train_valid["__norm_key__"].isin(test_keys)
+        leak_eval = train_valid["__norm_key__"].isin(eval_keys)
+
+        label_counts = train_valid.groupby("__norm_key__")[label_col].nunique()
+        conflict_keys = set(label_counts[label_counts > 1].index)
+        conflict_rows = train_valid["__norm_key__"].isin(conflict_keys)
+
+        exact_dups = train_valid.duplicated(subset=["__norm_key__", label_col], keep="first")
+
+        return {
+            "total_train_rows": len(train_valid),
+            "unique_train_texts": int(train_valid["__norm_key__"].nunique()),
+            "leak_dev_rows": int(leak_dev.sum()),
+            "leak_dev_unique": int(train_valid.loc[leak_dev, "__norm_key__"].nunique()),
+            "leak_test_rows": int(leak_test.sum()),
+            "leak_test_unique": int(train_valid.loc[leak_test, "__norm_key__"].nunique()),
+            "leak_total_rows": int(leak_eval.sum()),
+            "leak_total_unique": int(train_valid.loc[leak_eval, "__norm_key__"].nunique()),
+            "conflict_unique_texts": len(conflict_keys),
+            "conflict_total_rows": int(conflict_rows.sum()),
+            "exact_dup_rows": int(exact_dups.sum()),
+        }
+
+    # Xử lý khử trùng lặp và triệt tiêu hoàn toàn rò rỉ dữ liệu (Data Leakage) khỏi tập huấn luyện
+    @classmethod
+    def clean_and_deduplicate(
+        cls,
+        train_df,
+        dev_df=None,
+        test_df=None,
+        text_col="free_text",
+        label_col="label_id",
+        drop_conflicting=True,
+        verbose=True,
+    ):
+        """
+        Làm sạch tập dữ liệu huấn luyện:
+        1. Triệt tiêu rò rỉ dữ liệu: Lọc bỏ các mẫu train có mặt trong tập dev hoặc test.
+        2. Loại bỏ nhiễu nhãn mâu thuẫn: Loại bỏ các câu văn bản cùng nội dung nhưng khác nhãn.
+        3. Khử trùng lặp nội bộ: Giữ lại bản ghi duy nhất cho các câu giống hệt nhau.
+        """
+        stats = cls.audit_duplicates_and_leakage(
+            train_df, dev_df, test_df, text_col=text_col, label_col=label_col
+        )
+
+        train_valid = train_df.dropna(subset=[text_col, label_col]).copy()
+        train_valid[label_col] = train_valid[label_col].astype(int)
+        train_valid["__norm_key__"] = train_valid[text_col].apply(cls.normalize_matching_key)
+
+        # 1. Loại bỏ rò rỉ dữ liệu sang tập Dev và Test
+        dev_keys = (
+            set(dev_df[text_col].dropna().apply(cls.normalize_matching_key))
+            if dev_df is not None
+            else set()
+        )
+        test_keys = (
+            set(test_df[text_col].dropna().apply(cls.normalize_matching_key))
+            if test_df is not None
+            else set()
+        )
+        eval_keys = dev_keys | test_keys
+
+        df_no_leak = train_valid[~train_valid["__norm_key__"].isin(eval_keys)].copy()
+
+        # 2. Xử lý mẫu mâu thuẫn nhãn
+        label_counts = df_no_leak.groupby("__norm_key__")[label_col].nunique()
+        rem_conflict_keys = set(label_counts[label_counts > 1].index)
+
+        if drop_conflicting:
+            df_no_conflict = df_no_leak[~df_no_leak["__norm_key__"].isin(rem_conflict_keys)].copy()
+        else:
+            df_no_conflict = df_no_leak.drop_duplicates(subset=["__norm_key__"], keep="first").copy()
+
+        # 3. Khử trùng lặp nội bộ
+        df_clean = df_no_conflict.drop_duplicates(subset=["__norm_key__"], keep="first").copy()
+        removed_count = len(train_valid) - len(df_clean)
+
+        if verbose:
+            print("=" * 75)
+            print("BÁO CÁO KIỂM KÊ TRÙNG LẶP VÀ RÒ RỈ DỮ LIỆU (DATA LEAKAGE & DUPLICATES AUDIT)")
+            print("=" * 75)
+            print(f"- Tổng số mẫu Train ban đầu hợp lệ:        {stats['total_train_rows']:>6} mẫu ({stats['unique_train_texts']} văn bản duy nhất)")
+            print(f"- Rò rỉ dữ liệu sang tập Dev (Validation): {stats['leak_dev_rows']:>6} dòng ({stats['leak_dev_unique']} văn bản)")
+            print(f"- Rò rỉ dữ liệu sang tập Test (Độc lập):   {stats['leak_test_rows']:>6} dòng ({stats['leak_test_unique']} văn bản)")
+            print(f"- Tổng mẫu Train trùng lặp với Dev/Test:   {stats['leak_total_rows']:>6} dòng ({stats['leak_total_unique']} văn bản rò rỉ)")
+            print(f"- Mẫu mâu thuẫn nhãn nội bộ (Label Noise): {stats['conflict_total_rows']:>6} dòng ({stats['conflict_unique_texts']} văn bản khác nhãn)")
+            print(f"- Mẫu trùng lặp cùng nhãn (Exact Dups):    {stats['exact_dup_rows']:>6} dòng")
+            print("-" * 75)
+            print(f"- Đã loại bỏ triệt để khỏi tập Train:      {removed_count:>6} mẫu không hợp lệ/rò rỉ")
+            print(f"- Số lượng mẫu Train sạch sau xử lý:       {len(df_clean):>6} mẫu chuẩn hóa")
+            print("=" * 75)
+
+        return df_clean.drop(columns=["__norm_key__"])

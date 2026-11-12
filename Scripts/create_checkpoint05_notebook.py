@@ -238,23 +238,127 @@ def create_checkpoint05_notebook():
         "                transformed_texts.append(cleaned_text)",
         "                valid_indices.append(idx)",
         "        filtered_df = df_clean.loc[valid_indices].copy()",
-        "        return transformed_texts, filtered_df[label_col].to_numpy()"
+        "        return transformed_texts, filtered_df[label_col].to_numpy()",
+        "",
+        "    @staticmethod",
+        "    def normalize_matching_key(text):",
+        "        if not isinstance(text, str):",
+        "            text = str(text) if text is not None else ''",
+        "        text = unicodedata.normalize('NFC', text).strip().lower()",
+        "        return re.sub(r'\s+', ' ', text)",
+        "",
+        "    @classmethod",
+        "    def audit_duplicates_and_leakage(cls, train_df, dev_df=None, test_df=None, text_col='free_text', label_col='label_id'):",
+        "        train_valid = train_df.dropna(subset=[text_col, label_col]).copy()",
+        "        train_valid[label_col] = train_valid[label_col].astype(int)",
+        "        train_valid['__norm_key__'] = train_valid[text_col].apply(cls.normalize_matching_key)",
+        "",
+        "        dev_keys = set(dev_df[text_col].dropna().apply(cls.normalize_matching_key)) if dev_df is not None else set()",
+        "        test_keys = set(test_df[text_col].dropna().apply(cls.normalize_matching_key)) if test_df is not None else set()",
+        "        eval_keys = dev_keys | test_keys",
+        "",
+        "        leak_dev = train_valid['__norm_key__'].isin(dev_keys)",
+        "        leak_test = train_valid['__norm_key__'].isin(test_keys)",
+        "        leak_eval = train_valid['__norm_key__'].isin(eval_keys)",
+        "",
+        "        label_counts = train_valid.groupby('__norm_key__')[label_col].nunique()",
+        "        conflict_keys = set(label_counts[label_counts > 1].index)",
+        "        conflict_rows = train_valid['__norm_key__'].isin(conflict_keys)",
+        "",
+        "        exact_dups = train_valid.duplicated(subset=['__norm_key__', label_col], keep='first')",
+        "",
+        "        return {",
+        "            'total_train_rows': len(train_valid),",
+        "            'unique_train_texts': int(train_valid['__norm_key__'].nunique()),",
+        "            'leak_dev_rows': int(leak_dev.sum()),",
+        "            'leak_dev_unique': int(train_valid.loc[leak_dev, '__norm_key__'].nunique()),",
+        "            'leak_test_rows': int(leak_test.sum()),",
+        "            'leak_test_unique': int(train_valid.loc[leak_test, '__norm_key__'].nunique()),",
+        "            'leak_total_rows': int(leak_eval.sum()),",
+        "            'leak_total_unique': int(train_valid.loc[leak_eval, '__norm_key__'].nunique()),",
+        "            'conflict_unique_texts': len(conflict_keys),",
+        "            'conflict_total_rows': int(conflict_rows.sum()),",
+        "            'exact_dup_rows': int(exact_dups.sum()),",
+        "        }",
+        "",
+        "    @classmethod",
+        "    def clean_and_deduplicate(cls, train_df, dev_df=None, test_df=None, text_col='free_text', label_col='label_id', drop_conflicting=True, verbose=True):",
+        "        stats = cls.audit_duplicates_and_leakage(train_df, dev_df, test_df, text_col=text_col, label_col=label_col)",
+        "        train_valid = train_df.dropna(subset=[text_col, label_col]).copy()",
+        "        train_valid[label_col] = train_valid[label_col].astype(int)",
+        "        train_valid['__norm_key__'] = train_valid[text_col].apply(cls.normalize_matching_key)",
+        "",
+        "        dev_keys = set(dev_df[text_col].dropna().apply(cls.normalize_matching_key)) if dev_df is not None else set()",
+        "        test_keys = set(test_df[text_col].dropna().apply(cls.normalize_matching_key)) if test_df is not None else set()",
+        "        eval_keys = dev_keys | test_keys",
+        "",
+        "        df_no_leak = train_valid[~train_valid['__norm_key__'].isin(eval_keys)].copy()",
+        "        label_counts = df_no_leak.groupby('__norm_key__')[label_col].nunique()",
+        "        rem_conflict_keys = set(label_counts[label_counts > 1].index)",
+        "",
+        "        if drop_conflicting:",
+        "            df_no_conflict = df_no_leak[~df_no_leak['__norm_key__'].isin(rem_conflict_keys)].copy()",
+        "        else:",
+        "            df_no_conflict = df_no_leak.drop_duplicates(subset=['__norm_key__'], keep='first').copy()",
+        "",
+        "        df_clean = df_no_conflict.drop_duplicates(subset=['__norm_key__'], keep='first').copy()",
+        "        removed_count = len(train_valid) - len(df_clean)",
+        "",
+        "        if verbose:",
+        "            print('=' * 75)",
+        "            print('BÁO CÁO KIỂM KÊ TRÙNG LẶP VÀ RÒ RỈ DỮ LIỆU (DATA LEAKAGE & DUPLICATES AUDIT)')",
+        "            print('=' * 75)",
+        "            print(f'- Tổng số mẫu Train ban đầu hợp lệ:        {stats["total_train_rows"]:>6} mẫu ({stats["unique_train_texts"]} văn bản duy nhất)')",
+        "            print(f'- Rò rỉ dữ liệu sang tập Dev (Validation): {stats["leak_dev_rows"]:>6} dòng ({stats["leak_dev_unique"]} văn bản)')",
+        "            print(f'- Rò rỉ dữ liệu sang tập Test (Độc lập):   {stats["leak_test_rows"]:>6} dòng ({stats["leak_test_unique"]} văn bản)')",
+        "            print(f'- Tổng mẫu Train trùng lặp với Dev/Test:   {stats["leak_total_rows"]:>6} dòng ({stats["leak_total_unique"]} văn bản rò rỉ)')",
+        "            print(f'- Mẫu mâu thuẫn nhãn nội bộ (Label Noise): {stats["conflict_total_rows"]:>6} dòng ({stats["conflict_unique_texts"]} văn bản khác nhãn)')",
+        "            print(f'- Mẫu trùng lặp cùng nhãn (Exact Dups):    {stats["exact_dup_rows"]:>6} dòng')",
+        "            print('-' * 75)",
+        "            print(f'- Đã loại bỏ triệt để khỏi tập Train:      {removed_count:>6} mẫu không hợp lệ/rò rỉ')",
+        "            print(f'- Số lượng mẫu Train sạch sau xử lý:       {len(df_clean):>6} mẫu chuẩn hóa')",
+        "            print('=' * 75)",
+        "",
+        "        return df_clean.drop(columns=['__norm_key__'])" 
     ])
 
     # Cell 8: Markdown Section 3
     add_markdown([
-        "## 3. Thực Hiện Tiền Xử Lý Dữ Liệu và Kiểm Tra Toàn Vẹn"
+        "## 3. Khử Trùng Lặp, Triệt Tiêu Rò Rỉ Dữ Liệu (Data Leakage) và Tiền Xử Lý Văn Bản
+",
+        "Khảo sát và xử lý các vấn đề chất lượng dữ liệu cốt lõi trong tập ViHSD:
+",
+        "1. **Triệt tiêu rò rỉ dữ liệu (Data Leakage Elimination):** Loại bỏ hoàn toàn các câu trong tập Train có mặt trong tập Dev hoặc Test để đảm bảo mô hình không học vẹt dữ liệu đánh giá, bảo toàn tính khách quan trong đánh giá tổng quát hóa.
+",
+        "2. **Khử nhiễu nhãn mâu thuẫn (Label Noise Resolution):** Loại bỏ các văn bản giống hệt nhau nhưng bị gán nhiều nhãn khác nhau (0, 1, 2) do bất đồng giữa các người gán nhãn, ngăn ngừa gradient đối nghịch làm mất ổn định hàm mất mát.
+",
+        "3. **Khử trùng lặp nội bộ (Deduplication):** Giữ lại duy nhất một bản ghi đại diện cho các mẫu trùng lặp cùng nhãn để tránh thiên lệch tần suất.
+",
+        "4. **Chuẩn hóa ngôn ngữ mạng xã hội:** Áp dụng `ViHSDPreprocessor` (Teencode 412 quy tắc, Emoji 2 pha, thu gọn lặp ký tự và phân đoạn từ PyVi)."
     ])
 
-    # Cell 9: Run Preprocessing
+    # Cell 9: Run Preprocessing & Leakage Cleaning
     add_code([
         "teencode_path = os.path.join(data_dir, 'teencode.csv')",
         "emoji_path = os.path.join(data_dir, 'emojis.csv')",
         "",
-        "preprocessor = ViHSDPreprocessor(teencode_path=teencode_path, emoji_path=emoji_path)",
-        "print('Bắt đầu tiền xử lý và phân đoạn từ trên ba tập dữ liệu...')",
+        "# 1. Khử trùng lặp nội bộ và triệt tiêu rò rỉ dữ liệu (Data Leakage) giữa Train và Dev/Test",
+        "print('Thực hiện kiểm kê và xử lý trùng lặp, rò rỉ dữ liệu (Data Leakage)...')",
+        "train_clean_df = ViHSDPreprocessor.clean_and_deduplicate(",
+        "    train_df=train_raw,",
+        "    dev_df=dev_raw,",
+        "    test_df=test_raw,",
+        "    text_col='free_text',",
+        "    label_col='label_id',",
+        "    drop_conflicting=True,",
+        "    verbose=True",
+        ")",
         "",
-        "train_X, train_y = preprocessor.transform_dataset(train_raw)",
+        "# 2. Khởi tạo đối tượng tiền xử lý ViHSDPreprocessor",
+        "preprocessor = ViHSDPreprocessor(teencode_path=teencode_path, emoji_path=emoji_path)",
+        "print('\nBắt đầu tiền xử lý và phân đoạn từ trên ba tập dữ liệu...')",
+        "",
+        "train_X, train_y = preprocessor.transform_dataset(train_clean_df)",
         "dev_X, dev_y = preprocessor.transform_dataset(dev_raw)",
         "test_X, test_y = preprocessor.transform_dataset(test_raw)",
         "",
@@ -263,10 +367,10 @@ def create_checkpoint05_notebook():
         "assert len(test_X) == len(test_y), 'Số lượng test X và y không khớp'",
         "assert sum(len(x.strip()) == 0 for x in train_X) == 0, 'Tồn tại văn bản rỗng trong train_X'",
         "",
-        "print('Tiền xử lý hoàn tất thành công:')",
-        "print(f'- Train: {len(train_X)} mẫu')",
-        "print(f'- Dev:   {len(dev_X)} mẫu')",
-        "print(f'- Test:  {len(test_X)} mẫu')"
+        "print('\nTiền xử lý hoàn tất thành công:')",
+        "print(f'- Train sạch: {len(train_X)} mẫu (đã loại bỏ triệt để trùng lặp và rò rỉ)')",
+        "print(f'- Dev:        {len(dev_X)} mẫu')",
+        "print(f'- Test:       {len(test_X)} mẫu')"
     ])
 
     # Cell 10: Markdown Section 4
@@ -614,52 +718,9 @@ def create_checkpoint05_notebook():
         "print(f'Đã lưu ma trận nhầm lẫn tại: {cm_output_path}')"
     ])
 
-    # Cell 22: Markdown Section 10
+    # Cell 22: Markdown Section 10 (Mandatory Artifacts Export)
     add_markdown([
-        "## 10. Bảng Đối Sánh Hiệu Năng Tiến Bộ Lũy Kế"
-    ])
-
-    # Cell 23: Benchmark Comparison Table
-    add_code([
-        "comparison_data = {",
-        "    'Mô Hình / Checkpoint': [",
-        "        'Baseline Gốc (Lưu et al., 2021)',",
-        "        'Checkpoint 01 (Baseline + Smoothed CW)',",
-        "        'Checkpoint 02 (Baseline + Focal Loss gamma = 1.5)',",
-        "        'Checkpoint 03 (Baseline + Tiền xử lý dữ liệu)',",
-        "        'Checkpoint 04 (Tối ưu hóa huấn luyện nâng cao)',",
-        "        'Checkpoint 05 (Tích hợp toàn diện các giải pháp - Hiện tại)',",
-        "    ],",
-        "    'Độ Dài': [100, 100, 100, 100, 256, 256],",
-        "    'Số Epochs': [2, 2, 2, 2, 8, 8],",
-        "    'Hàm Mất Mát': [",
-        "        'Cross-Entropy',",
-        "        'Weighted Cross-Entropy (Smoothed)',",
-        "        'Focal Loss (gamma = 1.5)',",
-        "        'Cross-Entropy',",
-        "        'Cross-Entropy',",
-        "        'Weighted Focal Loss (gamma = 1.5, alpha Smoothed)',",
-        "    ],",
-        "    'Accuracy': [0.8350, 0.8521, 0.8540, 0.8560, 0.8650, round(float(results['accuracy']), 4)],",
-        "    'Macro-Precision': [0.6400, 0.6582, 0.6610, 0.6635, 0.6720, round(float(results['macro_precision']), 4)],",
-        "    'Macro-Recall': [0.6200, 0.6415, 0.6450, 0.6480, 0.6580, round(float(results['macro_recall']), 4)],",
-        "    'Macro-F1': [0.6276, 0.6493, 0.6528, 0.6552, 0.6645, round(float(results['macro_f1']), 4)],",
-        "    'F1 Clean': [0.9020, 0.9125, 0.9140, 0.9150, 0.9210, round(float(results['per_class_f1']['clean']), 4)],",
-        "    'F1 Offensive': [0.4610, 0.4912, 0.4950, 0.5010, 0.5180, round(float(results['per_class_f1']['offensive']), 4)],",
-        "    'F1 Hate': [0.5200, 0.5442, 0.5495, 0.5496, 0.5545, round(float(results['per_class_f1']['hate']), 4)],",
-        "}",
-        "",
-        "df_comparison = pd.DataFrame(comparison_data)",
-        "comparison_csv_path = os.path.join(outputs_dir, 'benchmark_comparison.csv')",
-        "df_comparison.to_csv(comparison_csv_path, index=False)",
-        "",
-        "print('BẢNG ĐỐI SÁNH HIỆU NĂNG TIẾN BỘ LŨY KẾ:')",
-        "print(df_comparison.to_string(index=False))"
-    ])
-
-    # Cell 24: Markdown Section 11
-    add_markdown([
-        "## 11. Xuất Các Tệp Kết Quả Chuẩn Hóa (Mandatory Artifacts Export)"
+        "## 10. Xuất Các Tệp Kết Quả Chuẩn Hóa (Mandatory Artifacts Export)"
     ])
 
     # Cell 25: Mandatory Artifacts Export

@@ -464,44 +464,9 @@ def create_checkpoint01_notebook():
         "print(f'Đã lưu ma trận nhầm lẫn tại: {cm_output_path}')"
     ])
 
-    # Cell 20: Markdown Section 9
+    # Cell 20: Markdown Section 9 (Mandatory Artifacts Export)
     add_markdown([
-        "## 9. Bảng Đối Sánh Hiệu Năng So Với Baseline Gốc"
-    ])
-
-    # Cell 21: Benchmark Comparison Table
-    add_code([
-        "comparison_data = {",
-        "    'Mô Hình / Checkpoint': [",
-        "        'Baseline Gốc (Lưu et al., 2021)',",
-        "        'Checkpoint 01 (Baseline + Smoothed CW - Hiện tại)',",
-        "    ],",
-        "    'Độ Dài': [100, 100],",
-        "    'Số Epochs': [2, 2],",
-        "    'Hàm Mất Mát': [",
-        "        'Cross-Entropy',",
-        "        'Weighted Cross-Entropy (Smoothed)',",
-        "    ],",
-        "    'Accuracy': [0.8350, round(float(results['accuracy']), 4)],",
-        "    'Macro-Precision': [0.6400, round(float(results['macro_precision']), 4)],",
-        "    'Macro-Recall': [0.6200, round(float(results['macro_recall']), 4)],",
-        "    'Macro-F1': [0.6276, round(float(results['macro_f1']), 4)],",
-        "    'F1 Clean': [0.9020, round(float(results['per_class_f1']['clean']), 4)],",
-        "    'F1 Offensive': [0.4610, round(float(results['per_class_f1']['offensive']), 4)],",
-        "    'F1 Hate': [0.5200, round(float(results['per_class_f1']['hate']), 4)],",
-        "}",
-        "",
-        "df_comparison = pd.DataFrame(comparison_data)",
-        "comparison_csv_path = os.path.join(outputs_dir, 'benchmark_comparison.csv')",
-        "df_comparison.to_csv(comparison_csv_path, index=False)",
-        "",
-        "print('BẢNG ĐỐI SÁNH HIỆU NĂNG:')",
-        "print(df_comparison.to_string(index=False))"
-    ])
-
-    # Cell 22: Markdown Section 10
-    add_markdown([
-        "## 10. Xuất Các Tệp Kết Quả Chuẩn Hóa (Mandatory Artifacts Export)"
+        "## 9. Xuất Các Tệp Kết Quả Chuẩn Hóa (Mandatory Artifacts Export)"
     ])
 
     # Cell 23: Mandatory Artifacts Export
