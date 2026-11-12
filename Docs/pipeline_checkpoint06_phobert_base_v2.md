@@ -49,8 +49,8 @@ Tài liệu này đặc tả chi tiết cơ sở khoa học, quy trình chuyển
    CombinedOptimizedTrainer
    - Mô hình: AutoModelForSequenceClassification('vinai/phobert-base-v2')
    - Hàm mất mát: WeightedFocalLoss(alpha=active_class_weights, gamma=1.5)
-   - Optimizer: Differential AdamW (lr_roberta=2e-5, lr_head=1e-4)
-   - Scheduler: Cosine Annealing with Warmup
+   - Optimizer: Differential AdamW (lr_roberta=1.5e-5, lr_head=5e-5)
+   - Scheduler: Cosine Annealing with Warmup (10%)
    - Callbacks: EarlyStoppingCallback(patience = 2)
                      |
                      v
@@ -66,14 +66,16 @@ Tài liệu này đặc tả chi tiết cơ sở khoa học, quy trình chuyển
 
 | Tham số | Giá trị | Giải thích |
 | :--- | :---: | :--- |
-| **Mô hình nền tảng** | **`vinai/phobert-base-v2`** | Kiến trúc Transformer tiếng Việt thế hệ 2 hiện đại. |
+| **Mô hình nền tảng** | **`vinai/phobert-base-v2`** | Kiến trúc Transformer tiếng Việt thế hệ 2 hiện đại (20GB ngữ liệu). |
 | **Tiền xử lý văn bản** | `ViHSDPreprocessor` | Tự chứa: Emoji 2 pha + Teencode 412 + PyVi. |
 | **Độ dài chuỗi (max_length)** | **256** | Ngữ cảnh bình luận trọn vẹn. |
-| **Số epochs tối đa** | **8** | Huấn luyện sâu với dừng sớm. |
+| **Số epochs tối đa** | **8** | Huấn luyện sâu với dừng sớm (patience = 2). |
 | **Hàm mất mát** | **Weighted Focal Loss** | Kết hợp $\alpha$ Smoothed CW và $\gamma = 1.5$. |
-| **Tốc độ học phân tầng** | $2 \times 10^{-5}$ / $1 \times 10^{-4}$ | Backbone RoBERTa v2 / Classification Head. |
-| **Lịch trình LR** | Cosine with Warmup | 10% bước khởi động tuyến tính. |
+| **Tốc độ học phân tầng** | **$1.5 \times 10^{-5}$ / $5.0 \times 10^{-5}$** | RoBERTa v2 Backbone / Classification Head (tỷ lệ cân bằng 3.3x chống gradient shock). |
+| **Lịch trình LR** | Cosine with Warmup | 10% bước khởi động tuyến tính (warmup_ratio = 0.10). |
 | **Batch size hiệu dụng** | **32** | Mini-batch 16 tích lũy 2 bước gradient. |
+
+*Ghi chú về tinh chỉnh Learning Rate:* Không gian biểu diễn của PhoBERT-base-v2 được tiền huấn luyện sâu trên 20GB ngữ liệu. Việc hạ `head_lr` từ $1 \times 10^{-4}$ xuống $5 \times 10^{-5}$ và tinh chỉnh `backbone_lr` về $1.5 \times 10^{-5}$ giúp loại bỏ hiện tượng gradient shock từ classification head ngẫu nhiên lên các tầng trên cùng của backbone, ngăn ngừa việc mô hình tự khóa quá sớm vào lớp đa số CLEAN, bảo toàn và nâng cao Recall của lớp HATE và OFFENSIVE.
 
 ---
 
