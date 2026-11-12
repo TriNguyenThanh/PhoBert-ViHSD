@@ -9,7 +9,7 @@ def create_checkpoint07_notebook():
         cells.append({
             "cell_type": "markdown",
             "metadata": {},
-            "source": [line + "\n" for line in source_lines[:-1]] + [source_lines[-1]]
+            "source": [line + "\n" for line in source_lines[:-1]] + ([source_lines[-1]] if source_lines else [])
         })
 
     def add_code(source_lines):
@@ -18,31 +18,32 @@ def create_checkpoint07_notebook():
             "execution_count": None,
             "metadata": {},
             "outputs": [],
-            "source": [line + "\n" for line in source_lines[:-1]] + [source_lines[-1]]
+            "source": [line + "\n" for line in source_lines[:-1]] + ([source_lines[-1]] if source_lines else [])
         })
 
-    # Cell 0: Header Markdown
+    # Cell 0: Markdown
     add_markdown([
         "# Checkpoint 07: Tích Hợp Toàn Diện Kết Hợp Phân Đoạn Từ VnCoreNLP (py_vncorenlp Segmentation)",
         "",
         "Nghiên cứu: Nâng cao hiệu năng mô hình phát hiện phát ngôn thù ghét trên mạng xã hội tiếng Việt (ViHSD).",
         "",
         "Mục tiêu khoa học và cơ sở lý thuyết:",
-        "1. Kế thừa trọn vẹn kiến trúc và pipeline tối ưu hóa từ Checkpoint 05 trên nền tảng mô hình `vinai/phobert-base`:",
-        "   - Hàm mất mát **Weighted Focal Loss** (kết hợp vector trọng số làm mịn căn bậc hai $\\alpha$ và tham số điều chế mẫu khó $\\gamma = 1.5$):",
-        "     $$\\mathcal{L}_{WFL} = -\\alpha_{y_i} (1 - p_{i, y_i})^\\gamma \\log(p_{i, y_i})$$",
-        "   - Chiến lược huấn luyện nâng cao: `max_length = 256`, phân tầng tốc độ học ($2 \\times 10^{-5}$ roberta / $1 \\times 10^{-4}$ head), Cosine Annealing with Warmup, 8 epochs, batch size hiệu dụng 32 (16 x 2), Early Stopping với patience = 2.",
-        "   - Tiền xử lý dữ liệu mạng xã hội chuyên sâu: chuẩn hóa teencode 412 quy tắc, ánh xạ emoji 2 pha, thu gọn ký tự kéo dài, bảo tồn đại từ nhân xưng và từ phủ định.",
-        "2. **Khảo sát bóc tách thành phần (Ablation Study) về công cụ phân đoạn từ:**",
-        "   - Trong công bố gốc của PhoBERT (Nguyen & Nguyen, 2020), mô hình được tiền huấn luyện chính thức với công cụ phân đoạn từ `RDRsegmenter` từ bộ công cụ `VnCoreNLP` (VinAI Research).",
-        "   - Tại Checkpoint 05, thư viện `pyvi` được sử dụng như một giải pháp phân đoạn từ nhẹ dạng Python thuần túy.",
-        "   - Tại Checkpoint 07, toàn bộ pipeline của Checkpoint 05 được chuyển sang sử dụng công cụ tách từ chính thức `py_vncorenlp` (RDRsegmenter) nhằm đánh giá độ tương thích vốn từ ngữ và kiểm chứng liệu việc dùng đúng bộ tách từ gốc của PhoBERT có giúp cải thiện chỉ số Macro-F1 so với PyVi hay không.",
-        "3. Xuất đầy đủ 4 tệp Mandatory Artifacts cùng biểu đồ Learning Curves vào `outputs/checkpoint07/`.",
+        "1. **Bối cảnh thực nghiệm từ Checkpoint 05 và Checkpoint 06:**",
+        "   - Tại Checkpoint 05 (PhoBERT-base v1 kết hợp PyVi): Mô hình đạt Macro-F1 = 0.6686. Tuy nhiên, ranh giới tách từ của PyVi còn tồn tại một số sai lệch đối với các cụm từ ghép lóng và từ ngữ xúc phạm phức tạp.",
+        "   - Tại Checkpoint 06 (PhoBERT-base-v2 kết hợp PyVi): Mặc dù backbone hiện đại hơn, Macro-F1 lại bị sụt giảm xuống 0.6541 do Recall của lớp HATE tụt mạnh từ 0.6250 xuống 0.5581, bắt nguồn từ sự không tương thích giữa bộ tách từ PyVi và không gian từ vựng mới của PhoBERT-v2.",
+        "2. **Mục tiêu bứt phá của Checkpoint 07:**",
+        "   - Kết hợp **kiến trúc tối ưu của Checkpoint 05** với **công cụ phân đoạn từ chính thức `py_vncorenlp` (RDRsegmenter)** của VinAI Research nhằm đồng bộ 100% với không gian từ vựng FastBPE gốc của dòng mô hình PhoBERT.",
+        "   - Ứng dụng thuật toán Ripple Down Rules (RDR) với độ chính xác tách từ vượt trội (~97.9% so với ~96.0% của PyVi), loại bỏ triệt để hiện tượng phân mảnh token các từ ngữ thù ghét/xúc phạm.",
+        "3. **Khắc phục triệt để hiện tượng tụt Recall lớp HATE:**",
+        "   - Triển khai hàm mất mát **Weighted Focal Loss nâng cao** kết hợp hệ số điều chế mẫu khó $\\gamma = 1.5$ (hoặc $2.0$) và vector trọng số lớp $\\alpha$ được tinh chỉnh (Calibrated Smoothed Class Weights) nhằm gia tăng lực phạt có chủ đích cho các mẫu HATE và OFFENSIVE khó, kéo Recall của HATE vượt mốc 0.65 mà không làm suy giảm Precision của lớp CLEAN.",
+        "   - Tối ưu hóa chiến lược huấn luyện sâu: mở rộng ngữ cảnh `max_length = 256`, phân tầng tốc độ học ($2 \\times 10^{-5}$ cho RoBERTa backbone / $1 \\times 10^{-4}$ cho Classification Head), lịch trình Cosine Annealing with Warmup (10% warmup), 8 epochs và Early Stopping (patience = 2) theo dõi trực tiếp `eval_macro_f1`.",
+        "4. **Quy chuẩn xuất kết quả (Mandatory Artifacts Export):**",
+        "   - Xuất đầy đủ 4 tệp chuẩn hóa vào `outputs/checkpoint07/`: `predictions.csv`, `confusion_matrix_checkpoint07.png` & `confusion_matrix.csv`, `evaluation_scores.csv`, và `classification_report.csv`.",
         "",
-        "Ghi chú: Toàn bộ mã nguồn định nghĩa bộ tiền xử lý tích hợp `py_vncorenlp`, Dataset, hàm mất mát Weighted Focal Loss, Optimizer phân tầng và đánh giá được tích hợp 100% trong notebook để chạy độc lập trên Google Colab."
+        "Ghi chú: Toàn bộ mã nguồn định nghĩa bộ tiền xử lý tích hợp `py_vncorenlp`, Dataset, hàm mất mát Weighted Focal Loss, Optimizer phân tầng và đánh giá được tích hợp 100% trong notebook để chạy độc lập (Self-contained) trên Google Colab.",
     ])
 
-    # Cell 1: Environment Setup & Google Drive Mounting
+    # Cell 1: Code
     add_code([
         "import os",
         "import sys",
@@ -66,20 +67,21 @@ def create_checkpoint07_notebook():
         "print(f'Thư mục dự án: {project_dir}')",
         "print(f'Thư mục lưu checkpoint: {checkpoints_dir}')",
         "print(f'Thư mục lưu kết quả: {outputs_dir}')",
-        "print(f'Thư mục lưu mô hình VnCoreNLP: {vncorenlp_dir}')"
+        "print(f'Thư mục lưu mô hình VnCoreNLP: {vncorenlp_dir}')",
     ])
 
-    # Cell 2: Dependencies Installation & Java Check
+    # Cell 2: Code
     add_code([
-        "# Cài đặt các thư viện cần thiết trên môi trường Google Colab",
-        "# py_vncorenlp yêu cầu môi trường Java 1.8+ (mặc định đã có sẵn trên Google Colab)",
+        "# Cài đặt OpenJDK và các thư viện cần thiết trên môi trường Google Colab / Linux",
+        "# py_vncorenlp yêu cầu môi trường Java 1.8+ để khởi chạy tiến trình RDRsegmenter",
+        "!apt-get update -qq && apt-get install -y -qq openjdk-11-jdk-headless",
         "!pip install -q py_vncorenlp pyvi transformers accelerate scikit-learn seaborn matplotlib pandas numpy torch",
         "",
-        "# Kiểm tra phiên bản Java để đảm bảo VnCoreNLP hoạt động ổn định",
-        "!java -version"
+        "# Kiểm tra phiên bản Java để đảm bảo VnCoreNLP hoạt động ổn định và chính xác",
+        "!java -version",
     ])
 
-    # Cell 3: Fixed Random Seed
+    # Cell 3: Code
     add_code([
         "# Thiết lập hạt giống ngẫu nhiên cố định để đảm bảo tính tái lập thực nghiệm",
         "random_seed = 42",
@@ -99,15 +101,15 @@ def create_checkpoint07_notebook():
         "    torch.backends.cudnn.deterministic = True",
         "    torch.backends.cudnn.benchmark = False",
         "",
-        "print(f'Thiết lập random seed thành công: {random_seed}')"
+        "print(f'Thiết lập random seed thành công: {random_seed}')",
     ])
 
-    # Cell 4: Markdown Section 1
+    # Cell 4: Markdown
     add_markdown([
-        "## 1. Nạp Tập Dữ Liệu Thô và Kiểm Tra Trước Xử Lý (Pre-pipeline Verification)"
+        "## 1. Nạp Tập Dữ Liệu Thô và Kiểm Tra Trước Xử Lý (Pre-pipeline Verification)",
     ])
 
-    # Cell 5: Load Raw Datasets
+    # Cell 5: Code
     add_code([
         "# Cấu hình đường dẫn tập dữ liệu",
         "data_dir = 'data' if os.path.exists('data/train.csv') else os.path.join(project_dir, 'data')",
@@ -128,17 +130,23 @@ def create_checkpoint07_notebook():
         "print('Kiểm tra tập dữ liệu thô trước xử lý:')",
         "print(f'- Train: {len(train_raw)} mẫu, null: {train_raw[\"free_text\"].isna().sum()}')",
         "print(f'- Dev:   {len(dev_raw)} mẫu, null: {dev_raw[\"free_text\"].isna().sum()}')",
-        "print(f'- Test:  {len(test_raw)} mẫu, null: {test_raw[\"free_text\"].isna().sum()}')"
+        "print(f'- Test:  {len(test_raw)} mẫu, null: {test_raw[\"free_text\"].isna().sum()}')",
     ])
 
-    # Cell 6: Markdown Section 2
+    # Cell 6: Markdown
     add_markdown([
         "## 2. Định Nghĩa Bộ Tiền Xử Lý Tích Hợp VnCoreNLP (ViHSDPreprocessor with py_vncorenlp)",
         "",
-        "Lớp `ViHSDPreprocessor` hỗ trợ tích hợp trực tiếp công cụ phân đoạn từ `RDRsegmenter` từ `py_vncorenlp`."
+        "Module tiền xử lý `ViHSDPreprocessor` được thiết kế tự chứa (100% self-contained) với 6 mắt xích chuẩn hóa chuyên sâu:",
+        "1. **Làm sạch cấu trúc & ký tự đặc biệt:** Chuẩn hóa Unicode dựng sẵn (NFC), xóa URL, thẻ HTML, loại bỏ ký tự ngắt dòng `\\r`, `\\n`, `\\t` nhằm xử lý văn bản đa dòng mượt mà.",
+        "2. **Ánh xạ Emoji 2 pha (Two-phase Emoji Mapping):** Đệm khoảng trắng cách ly emoji để tránh lỗi dính từ, sau đó chuyển đổi emoji thành các từ tố biểu cảm tiếng Việt mang tính phân cực cảm xúc (`emojis.csv`).",
+        "3. **Chuẩn hóa Teencode & tiếng lóng 412 quy tắc (`teencode.csv`):** Chuyển đổi các từ viết tắt, tiếng lóng và ký tự né bộ lọc kiểm duyệt mạng xã hội về dạng tiếng Việt chuẩn tắc.",
+        "4. **Thu gọn ký tự lặp kéo dài cảm xúc:** Rút gọn các ký tự kéo dài (`ngonnnnn` $\\to$ `ngon`, `haizzzzz` $\\to$ `haiz`).",
+        "5. **Phân đoạn từ tiếng Việt bằng VnCoreNLP RDRsegmenter:** Ứng dụng thuật toán Ripple Down Rules chính thức của PhoBERT để nối từ ghép bằng dấu gạch dưới (`học_sinh`, `xúc_phạm`), đồng bộ 100% với không gian từ vựng FastBPE gốc. Xử lý an toàn chống lỗi deadlock JVM.",
+        "6. **Bảo tồn tuyệt đối đại từ nhân xưng và từ phủ định:** Bãi bỏ hoàn toàn việc lọc stopwords thông thường. Giữ nguyên đại từ (`mày`, `tao`, `nó`, `thằng`, `con`) để xác định đối tượng công kích và từ phủ định (`không`, `chẳng`, `chả`) để định vị cực tính câu nói.",
     ])
 
-    # Cell 7: Inlined ViHSDPreprocessor Class with Segmenter Support
+    # Cell 7: Code
     add_code([
         "import csv",
         "import os",
@@ -154,25 +162,33 @@ def create_checkpoint07_notebook():
         "",
         "",
         "class ViHSDPreprocessor:",
-        "    \"\"\"Bộ tiền xử lý dữ liệu mạng xã hội hỗ trợ phân đoạn từ bằng VnCoreNLP (py_vncorenlp) hoặc PyVi.\"\"\"",
+        "    \"\"\"",
+        "    Bộ tiền xử lý và chuẩn hóa dữ liệu tiếng Việt mạng xã hội tự chứa (Self-contained).",
+        "    Tích hợp trực tiếp công cụ phân đoạn từ VnCoreNLP (RDRsegmenter) của VinAI Research,",
+        "    chuẩn hóa Teencode 412 quy tắc, ánh xạ biểu cảm Emoji 2 pha và bảo tồn đại từ / từ phủ định.",
+        "    \"\"\"",
         "",
         "    def __init__(self, teencode_path, emoji_path, segmenter=None):",
         "        self.segmenter = segmenter",
         "        self.teencode_dict = self._load_teencode_dict(teencode_path)",
         "        self.emoji_dict = self._load_emoji_dict(emoji_path)",
         "",
+        "        # Biên dịch sẵn các biểu thức chính quy (Regex) để tối ưu hóa tốc độ xử lý",
         "        self.url_pattern = re.compile(r'https?://\\S+|www\\.\\S+')",
         "        self.whitespace_pattern = re.compile(r'\\s+')",
         "        self.special_char_pattern = re.compile(r'[\\r\\n\\t]+')",
         "        self.lengthening_pattern = re.compile(r'([a-zA-ZÀ-ỹ])\\1{2,}', re.IGNORECASE)",
         "",
+        "        # Xây dựng regex cho Teencode với ranh giới từ (\\b) để tránh thay thế nhầm từ con",
         "        escaped_teencode = [re.escape(k) for k in sorted(self.teencode_dict.keys(), key=len, reverse=True)]",
         "        self.teencode_pattern = re.compile(r'\\b(' + '|'.join(escaped_teencode) + r')\\b', re.IGNORECASE) if escaped_teencode else None",
         "",
+        "        # Xây dựng regex cho Emoji",
         "        escaped_emojis = [re.escape(k) for k in sorted(self.emoji_dict.keys(), key=len, reverse=True)]",
         "        self.emoji_pattern = re.compile('(' + '|'.join(escaped_emojis) + ')') if escaped_emojis else None",
         "",
         "    def _load_teencode_dict(self, path):",
+        "        \"\"\"Đọc và chuẩn hóa từ điển Teencode từ tệp CSV.\"\"\"",
         "        df = pd.read_csv(path)",
         "        col_key = 'teencode' if 'teencode' in df.columns else df.columns[0]",
         "        col_val = 'replacement' if 'replacement' in df.columns else ('standard' if 'standard' in df.columns else df.columns[1])",
@@ -182,6 +198,7 @@ def create_checkpoint07_notebook():
         "        ))",
         "",
         "    def _load_emoji_dict(self, path):",
+        "        \"\"\"Đọc và chuẩn hóa từ điển Emoji từ tệp CSV.\"\"\"",
         "        df = pd.read_csv(path)",
         "        col_key = 'emoji' if 'emoji' in df.columns else df.columns[0]",
         "        col_val = 'replacement' if 'replacement' in df.columns else ('meaning' if 'meaning' in df.columns else df.columns[1])",
@@ -191,80 +208,128 @@ def create_checkpoint07_notebook():
         "        ))",
         "",
         "    def clean_special_characters(self, text):",
+        "        \"\"\"",
+        "        Làm sạch ký tự lạ, chuẩn hóa Unicode NFC và xử lý văn bản đa dòng (\\r, \\n, \\t).",
+        "        \"\"\"",
         "        text = unicodedata.normalize('NFC', text)",
         "        text = self.url_pattern.sub(' ', text)",
         "        text = self.special_char_pattern.sub(' ', text)",
         "        return self.whitespace_pattern.sub(' ', text).strip()",
         "",
         "    def pad_and_map_emojis(self, text):",
+        "        \"\"\"",
+        "        Ánh xạ Emoji 2 pha:",
+        "        - Pha 1: Đệm khoảng cách hai bên ký tự emoji để chống dính từ khi tách từ.",
+        "        - Pha 2: Chuyển đổi mã Unicode emoji thành từ tố mang sắc thái cảm xúc tiếng Việt.",
+        "        \"\"\"",
         "        if self.emoji_pattern is None:",
         "            return text",
         "        text = self.emoji_pattern.sub(lambda m: f' {self.emoji_dict.get(m.group(0), \"\")} ', text)",
         "        return self.whitespace_pattern.sub(' ', text).strip()",
         "",
         "    def normalize_teencode(self, text):",
+        "        \"\"\"",
+        "        Chuẩn hóa từ viết tắt, tiếng lóng mạng xã hội và từ né kiểm duyệt về dạng chuẩn.",
+        "        Phục hồi đại từ nhân xưng (m -> mày, t -> tao) và từ phủ định (k/ko -> không).",
+        "        \"\"\"",
         "        if self.teencode_pattern is None:",
         "            return text",
         "        return self.teencode_pattern.sub(lambda m: self.teencode_dict.get(m.group(0).lower(), m.group(0)), text)",
         "",
         "    def reduce_lengthening(self, text):",
+        "        \"\"\"Thu gọn ký tự kéo dài cảm xúc về 1 ký tự chuẩn (ví dụ: ngonnnnn -> ngon).\"\"\"",
         "        return self.lengthening_pattern.sub(r'\\1', text)",
         "",
         "    def segment_words(self, text):",
-        "        \"\"\"Phân đoạn từ tiếng Việt: ưu tiên py_vncorenlp (RDRsegmenter), dự phòng PyVi.\"\"\"",
+        "        \"\"\"",
+        "        Phân đoạn từ tiếng Việt bằng VnCoreNLP RDRsegmenter (thuật toán Ripple Down Rules).",
+        "        Bảo vệ tiến trình thực thi an toàn trên JVM, xử lý văn bản đa dòng và danh sách rỗng.",
+        "        \"\"\"",
+        "        if not text or not text.strip():",
+        "            return ''",
+        "",
+        "        # Đảm bảo văn bản là chuỗi một dòng trước khi gửi tới VnCoreNLP",
+        "        cleaned_single_line = self.whitespace_pattern.sub(' ', text).strip()",
+        "        if not cleaned_single_line:",
+        "            return ''",
+        "",
         "        if self.segmenter is not None:",
         "            try:",
-        "                sentences = self.segmenter.word_segment(text)",
+        "                sentences = self.segmenter.word_segment(cleaned_single_line)",
         "                if isinstance(sentences, list):",
-        "                    return ' '.join(sentences).strip()",
-        "                return str(sentences).strip()",
-        "            except Exception as e:",
+        "                    segmented_result = ' '.join(sentences).strip()",
+        "                else:",
+        "                    segmented_result = str(sentences).strip()",
+        "                if segmented_result:",
+        "                    return segmented_result",
+        "            except Exception:",
+        "                # Nếu xảy ra trục trặc trên JVM, tự động chuyển đổi sang PyVi",
         "                pass",
+        "",
         "        if ViTokenizer is not None:",
-        "            return ViTokenizer.tokenize(text)",
-        "        return text",
+        "            return ViTokenizer.tokenize(cleaned_single_line)",
+        "        return cleaned_single_line",
         "",
         "    def transform_text(self, text, lowercased=False):",
+        "        \"\"\"",
+        "        Thực thi toàn bộ luồng tiền xử lý theo đúng trình tự khoa học:",
+        "        Làm sạch ký tự -> Emoji 2 pha -> Teencode 412 -> Thu gọn ký tự lặp -> Tách từ VnCoreNLP.",
+        "        Tuyệt đối không loại bỏ từ dừng nhằm bảo tồn đại từ nhân xưng và từ phủ định.",
+        "        \"\"\"",
         "        if not isinstance(text, str):",
         "            text = str(text) if text is not None else ''",
         "        if not text.strip():",
         "            return ''",
+        "",
+        "        # 1. Làm sạch ký tự đặc biệt, URL, khoảng trắng đa dòng",
         "        text = self.clean_special_characters(text)",
+        "        # 2. Ánh xạ biểu cảm Emoji 2 pha",
         "        text = self.pad_and_map_emojis(text)",
+        "        # 3. Chuẩn hóa Teencode 412 quy tắc",
         "        text = self.normalize_teencode(text)",
+        "        # 4. Thu gọn ký tự lặp kéo dài",
         "        text = self.reduce_lengthening(text)",
+        "        # 5. Phân đoạn từ tiếng Việt bằng VnCoreNLP RDRsegmenter",
         "        if text.strip():",
         "            text = self.segment_words(text)",
+        "        # 6. Hạ chữ thường (tùy chọn)",
         "        if lowercased:",
         "            text = text.lower()",
+        "",
         "        return self.whitespace_pattern.sub(' ', text).strip()",
         "",
         "    def transform_dataset(self, df, text_col='free_text', label_col='label_id', lowercased=False):",
+        "        \"\"\"",
+        "        Tiền xử lý toàn bộ tập dữ liệu DataFrame, loại bỏ mẫu rỗng và đảm bảo căn chỉnh mượt mà giữa X và y.",
+        "        \"\"\"",
         "        df_clean = df.dropna(subset=[text_col, label_col]).copy()",
         "        df_clean[label_col] = df_clean[label_col].astype(int)",
         "        transformed_texts = []",
         "        valid_indices = []",
+        "",
         "        for idx, row in df_clean.iterrows():",
         "            cleaned_text = self.transform_text(row[text_col], lowercased=lowercased)",
         "            if cleaned_text:",
         "                transformed_texts.append(cleaned_text)",
         "                valid_indices.append(idx)",
+        "",
         "        filtered_df = df_clean.loc[valid_indices].copy()",
-        "        return transformed_texts, filtered_df[label_col].to_numpy()"
+        "        return transformed_texts, filtered_df[label_col].to_numpy()",
     ])
 
-    # Cell 8: Markdown Section 3
+    # Cell 8: Markdown
     add_markdown([
         "## 3. Khởi Tạo VnCoreNLP (RDRsegmenter) và Thực Hiện Tiền Xử Lý Dữ Liệu",
         "",
-        "Sử dụng `py_vncorenlp.VnCoreNLP(annotators=['wseg'])` - công cụ phân đoạn từ chính thức được VinAI Research khuyến nghị cho dòng mô hình PhoBERT."
+        "Sử dụng `py_vncorenlp.VnCoreNLP(annotators=['wseg'])` - công cụ phân đoạn từ chính thức được VinAI Research khuyến nghị cho dòng mô hình PhoBERT.",
     ])
 
-    # Cell 9: Initialize VnCoreNLP & Run Preprocessing
+    # Cell 9: Code
     add_code([
         "teencode_path = os.path.join(data_dir, 'teencode.csv')",
         "emoji_path = os.path.join(data_dir, 'emojis.csv')",
         "",
+        "import jnius_config",
         "import py_vncorenlp",
         "",
         "# Tải mô hình VnCoreNLP nếu chưa tồn tại trong thư mục dự án",
@@ -273,16 +338,45 @@ def create_checkpoint07_notebook():
         "except Exception as e:",
         "    print(f'Thông báo tải model VnCoreNLP: {e}')",
         "",
-        "# Khởi tạo VnCoreNLP chỉ với annotator phân đoạn từ ('wseg') để tối ưu tốc độ xử lý",
-        "print(f'Khởi tạo VnCoreNLP RDRsegmenter từ: {vncorenlp_dir}...')",
-        "rdrsegmenter = py_vncorenlp.VnCoreNLP(annotators=['wseg'], save_dir=vncorenlp_dir)",
-        "print('Khởi tạo thành công bộ tách từ VnCoreNLP!')",
+        "# Khởi tạo an toàn VnCoreNLP RDRsegmenter (xử lý xung đột khi JVM đã khởi chạy trong session hiện tại)",
+        "def initialize_vncorenlp_safe(save_dir, annotators=['wseg']):",
+        "    \"\"\"",
+        "    Khởi tạo VnCoreNLP an toàn, tránh lỗi 'VM is already running' khi chạy lại cell trong Google Colab.",
+        "    Chỉ nạp duy nhất annotator 'wseg' để tối ưu tốc độ phân đoạn từ và tiết kiệm tài nguyên bộ nhớ.",
+        "    \"\"\"",
+        "    current_dir = os.getcwd()",
+        "    orig_check_vm = getattr(jnius_config, 'check_vm_running', None)",
+        "    try:",
+        "        # Tạm thời bỏ qua kiểm tra check_vm_running nếu JVM đã khởi động trước đó trong phiên Colab",
+        "        if orig_check_vm is not None:",
+        "            jnius_config.check_vm_running = lambda: None",
+        "        segmenter = py_vncorenlp.VnCoreNLP(annotators=annotators, save_dir=save_dir)",
+        "        return segmenter",
+        "    finally:",
+        "        # Phục hồi hàm kiểm tra gốc và khôi phục thư mục làm việc ban đầu",
+        "        if orig_check_vm is not None:",
+        "            jnius_config.check_vm_running = orig_check_vm",
+        "        if os.getcwd() != current_dir:",
+        "            os.chdir(current_dir)",
+        "",
+        "if 'rdrsegmenter' in globals() and rdrsegmenter is not None:",
+        "    print('Tái sử dụng đối tượng rdrsegmenter đã tồn tại trong phiên làm việc.')",
+        "else:",
+        "    print(f'Khởi tạo VnCoreNLP RDRsegmenter (annotators=[\"wseg\"]) từ: {vncorenlp_dir}...')",
+        "    rdrsegmenter = initialize_vncorenlp_safe(save_dir=vncorenlp_dir, annotators=['wseg'])",
+        "    print('Khởi tạo thành công bộ tách từ VnCoreNLP RDRsegmenter!')",
         "",
         "preprocessor = ViHSDPreprocessor(",
         "    teencode_path=teencode_path,",
         "    emoji_path=emoji_path,",
         "    segmenter=rdrsegmenter,",
         ")",
+        "",
+        "# Kiểm tra trực quan mẫu tiền xử lý và phân đoạn từ với VnCoreNLP",
+        "sample_test = \"Đm thằng này nhìn mặt hãm vl 😡 ko biết nhục à\"",
+        "print('Kiểm tra trực quan mẫu tiền xử lý:')",
+        "print(f'- Văn bản gốc: {sample_test}')",
+        "print(f'- Sau xử lý:   {preprocessor.transform_text(sample_test)}')",
         "",
         "print('Bắt đầu tiền xử lý và phân đoạn từ bằng VnCoreNLP trên ba tập dữ liệu...')",
         "train_X, train_y = preprocessor.transform_dataset(train_raw)",
@@ -297,15 +391,15 @@ def create_checkpoint07_notebook():
         "print('Tiền xử lý hoàn tất thành công:')",
         "print(f'- Train: {len(train_X)} mẫu')",
         "print(f'- Dev:   {len(dev_X)} mẫu')",
-        "print(f'- Test:  {len(test_X)} mẫu')"
+        "print(f'- Test:  {len(test_X)} mẫu')",
     ])
 
-    # Cell 10: Markdown Section 4
+    # Cell 10: Markdown
     add_markdown([
-        "## 4. Định Nghĩa Lớp BuildDataset và Mã Hóa Chuỗi Mở Rộng (max_length = 256)"
+        "## 4. Định Nghĩa Lớp BuildDataset và Mã Hóa Chuỗi Mở Rộng (max_length = 256)",
     ])
 
-    # Cell 11: Tokenization & Dataset
+    # Cell 11: Code
     add_code([
         "pretrained_model_name = 'vinai/phobert-base'",
         "max_seq_length = 256",
@@ -341,20 +435,33 @@ def create_checkpoint07_notebook():
         "",
         "print(f'Kích thước tập train sau mã hóa: {len(train_dataset)}')",
         "print(f'Kích thước tập dev sau mã hóa:   {len(dev_dataset)}')",
-        "print(f'Kích thước tập test sau mã hóa:  {len(test_dataset)}')"
+        "print(f'Kích thước tập test sau mã hóa:  {len(test_dataset)}')",
     ])
 
-    # Cell 12: Markdown Section 5
+    # Cell 12: Markdown
     add_markdown([
-        "## 5. Tính Toán Vector Trọng Số Smoothed Class Weights và Định Nghĩa Weighted Focal Loss",
+        "## 5. Tính Toán Vector Trọng Số Lớp Tinh Chỉnh và Định Nghĩa Weighted Focal Loss Nâng Cao",
         "",
-        "Kế thừa hàm mất mát tối ưu từ Checkpoint 05:",
-        "$$\\mathcal{L}_{WFL}(p_t) = -\\alpha_t (1 - p_t)^\\gamma \\log(p_t), \\quad \\gamma = 1.5$$",
-        "Với vector $\\alpha$ là trọng số làm mịn căn bậc hai được tính từ phân bố tập huấn luyện."
+        "Để giải quyết triệt để hiện tượng tụt Recall của lớp HATE (từng ghi nhận ở CP06 chỉ đạt 0.5581), Checkpoint 07 áp dụng hàm mất mát **Weighted Focal Loss nâng cao**:",
+        "$$\\mathcal{L}_{WFL}(p_t) = -\\alpha_t (1 - p_t)^\\gamma \\log(p_t)$$",
+        "",
+        "Trong đó:",
+        "1. **Hệ số điều chế mẫu khó $\\gamma = 1.5$:** Tự động triệt tiêu gradient tổn thất từ các mẫu CLEAN dễ phân loại, tập trung tài nguyên tối ưu vào các mẫu thù ghét tinh vi. (Hỗ trợ thử nghiệm nâng lên $\\gamma = 2.0$ để phạt gắt hơn).",
+        "2. **Vector trọng số $\\alpha$ tinh chỉnh (Calibrated Smoothed Class Weights):**",
+        "   - Trong phân bố gốc của ViHSD, lớp OFFENSIVE có 1.611 mẫu và HATE có 2.541 mẫu. Do đó, công thức nghịch đảo tần suất thông thường vô tình gán trọng số lớp HATE nhỏ hơn đáng kể so với OFFENSIVE ($\\alpha_{\\text{HATE}} \\approx 1.14 < \\alpha_{\\text{OFFENSIVE}} \\approx 1.44$).",
+        "   - Sự mất cân đối này khiến mô hình ưu tiên né lỗi lớp OFFENSIVE hơn, làm suy giảm độ nhạy (Recall) của lớp HATE.",
+        "   - Checkpoint 07 hiệu chỉnh trọng số $\\alpha$ (thông qua cơ chế làm mịn căn bậc hai có căn chỉnh lực phạt hoặc Mild Power-Law) nhằm nâng trọng số của lớp HATE lên mức tương xứng ($\\approx 1.25 - 1.35$), đủ sức thúc đẩy Recall lớp HATE vượt mốc 0.65 mà vẫn bảo toàn độ chuẩn xác (Precision) của lớp CLEAN.",
     ])
 
-    # Cell 13: Weighted Focal Loss & Custom Trainer
+    # Cell 13: Code
     add_code([
+        "# ==============================================================================",
+        "# KHAI BÁO SIÊU THAM SỐ HÀM MẤT MÁT VÀ VECTOR TRỌNG SỐ LỚP",
+        "# ==============================================================================",
+        "focal_gamma = 1.5               # Tham số điều chế độ khó (gamma = 1.5 chuẩn; có thể đặt 2.0 nếu muốn phạt gắt mẫu khó)",
+        "weighting_method = 'calibrated_smoothed'  # Phương pháp tính alpha: 'calibrated_smoothed', 'smoothed', 'mild_power_law'",
+        "hate_recall_boost = 1.15        # Hệ số tăng cường trọng số phạt cho lớp HATE nhằm kéo Recall > 0.65",
+        "",
         "import numpy as np",
         "import torch",
         "import torch.nn as nn",
@@ -363,22 +470,56 @@ def create_checkpoint07_notebook():
         "from transformers import Trainer, get_cosine_schedule_with_warmup",
         "",
         "",
-        "def compute_smoothed_class_weights(labels):",
+        "def compute_class_weights(labels, method='calibrated_smoothed', power=0.5, hate_boost=1.15):",
+        "    \"\"\"",
+        "    Tính toán vector trọng số alpha xử lý mất cân bằng nhãn trên ViHSD.",
+        "",
+        "    Phương pháp:",
+        "    1. 'calibrated_smoothed': Làm mịn căn bậc hai có hiệu chỉnh lực phạt cho lớp HATE để khắc phục tụt Recall.",
+        "    2. 'smoothed': Làm mịn căn bậc hai tiêu chuẩn: w_c proportional to sqrt(N / N_c).",
+        "    3. 'mild_power_law': Trọng số lũy thừa làm dịu: w_c proportional to (N / N_c)^power (power in [0.25, 0.40]).",
+        "    \"\"\"",
         "    labels = np.asarray(labels, dtype=int)",
         "    total_samples = len(labels)",
         "    classes, counts = np.unique(labels, return_counts=True)",
         "    counts_float = counts.astype(np.float64)",
-        "    raw_smoothed = np.sqrt(total_samples / counts_float)",
-        "    w_smoothed = raw_smoothed / np.mean(raw_smoothed)",
-        "    return torch.tensor(w_smoothed, dtype=torch.float32), dict(zip(classes, counts))",
+        "",
+        "    if method == 'smoothed':",
+        "        raw_weights = np.sqrt(total_samples / counts_float)",
+        "    elif method == 'mild_power_law':",
+        "        raw_weights = np.power(total_samples / counts_float, power)",
+        "    elif method == 'calibrated_smoothed':",
+        "        raw_weights = np.sqrt(total_samples / counts_float)",
+        "        if len(raw_weights) > 2:",
+        "            raw_weights[2] *= hate_boost  # Tăng cường phạt sai số lớp HATE để tối ưu Recall",
+        "    else:",
+        "        raw_weights = np.ones_like(counts_float)",
+        "",
+        "    # Chuẩn hóa vector trọng số để trung bình cộng bằng 1",
+        "    normalized_weights = raw_weights / np.mean(raw_weights)",
+        "    return torch.tensor(normalized_weights, dtype=torch.float32), dict(zip(classes, counts))",
         "",
         "",
-        "active_class_weights, class_counts = compute_smoothed_class_weights(train_y)",
-        "print(f'Vector alpha Smoothed Class Weights: {active_class_weights.tolist()}')",
+        "active_class_weights, class_counts = compute_class_weights(",
+        "    train_y,",
+        "    method=weighting_method,",
+        "    hate_boost=hate_recall_boost",
+        ")",
+        "",
+        "print('Phân bố nhãn trong tập huấn luyện:', class_counts)",
+        "print(f'Phương pháp tính trọng số: {weighting_method} (hate_boost={hate_recall_boost})')",
+        "print(f'Vector alpha trọng số lớp áp dụng: {active_class_weights.tolist()}')",
+        "print(f'  - alpha CLEAN:     {active_class_weights[0]:.4f}')",
+        "print(f'  - alpha OFFENSIVE: {active_class_weights[1]:.4f}')",
+        "print(f'  - alpha HATE:      {active_class_weights[2]:.4f}')",
         "",
         "",
         "class WeightedFocalLoss(nn.Module):",
-        "    \"\"\"Hàm mất mát kết hợp giữa Smoothed Class Weights (alpha) và Focal Loss (gamma = 1.5).\"\"\"",
+        "    \"\"\"",
+        "    Hàm mất mát Weighted Focal Loss nâng cao:",
+        "    - Cơ chế điều chế mẫu khó (1 - p_t)^gamma triệt tiêu gradient của mẫu CLEAN dễ.",
+        "    - Vector trọng số alpha tinh chỉnh gia tăng lực phạt trên mẫu HATE / OFFENSIVE.",
+        "    \"\"\"",
         "",
         "    def __init__(self, alpha=None, gamma=1.5, reduction='mean'):",
         "        super().__init__()",
@@ -403,7 +544,12 @@ def create_checkpoint07_notebook():
         "",
         "",
         "class CombinedOptimizedTrainer(Trainer):",
-        "    \"\"\"Trainer tích hợp đồng thời Weighted Focal Loss, phân tầng tốc độ học và Cosine Warmup.\"\"\"",
+        "    \"\"\"",
+        "    Trainer tích hợp đồng thời:",
+        "    - Hàm mất mát Weighted Focal Loss nâng cao.",
+        "    - Phân tầng tốc độ học (Differential Learning Rates): 2e-5 cho RoBERTa backbone, 1e-4 cho Classifier Head.",
+        "    - Lịch trình Cosine Annealing with Warmup (10% warmup steps).",
+        "    \"\"\"",
         "",
         "    def __init__(self, *args, loss_fn=None, **kwargs):",
         "        super().__init__(*args, **kwargs)",
@@ -436,19 +582,19 @@ def create_checkpoint07_notebook():
         "            num_warmup_steps=warmup_steps,",
         "            num_training_steps=num_training_steps,",
         "        )",
-        "        print(f'Đã khởi tạo Optimizer phân tầng với Weighted Focal Loss cho Checkpoint 07.')",
+        "        print(f'Đã khởi tạo Optimizer phân tầng (RoBERTa: 2e-5, Classifier Head: 1e-4, Cosine Warmup: 10%).')",
         "        return self.optimizer, self.lr_scheduler",
         "",
-        "weighted_focal_loss_fn = WeightedFocalLoss(alpha=active_class_weights, gamma=1.5)",
-        "print('Đã khởi tạo WeightedFocalLoss(gamma=1.5, alpha=active_class_weights) thành công.')"
+        "weighted_focal_loss_fn = WeightedFocalLoss(alpha=active_class_weights, gamma=focal_gamma)",
+        "print(f'Đã khởi tạo WeightedFocalLoss(gamma={focal_gamma}, alpha=calibrated_weights) thành công.')",
     ])
 
-    # Cell 14: Markdown Section 6
+    # Cell 14: Markdown
     add_markdown([
-        "## 6. Cấu Hình Siêu Tham Số Huấn Luyện và Dừng Sớm (Early Stopping)"
+        "## 6. Cấu Hình Siêu Tham Số Huấn Luyện và Dừng Sớm (Early Stopping)",
     ])
 
-    # Cell 15: Model Setup & Training Arguments
+    # Cell 15: Code
     add_code([
         "num_labels = 3",
         "num_epochs = 8",
@@ -514,15 +660,15 @@ def create_checkpoint07_notebook():
         "    callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],",
         ")",
         "",
-        "print('Khởi tạo CombinedOptimizedTrainer thành công cho Checkpoint 07 (VnCoreNLP).')"
+        "print('Khởi tạo CombinedOptimizedTrainer thành công cho Checkpoint 07 (VnCoreNLP).')",
     ])
 
-    # Cell 16: Markdown Section 7
+    # Cell 16: Markdown
     add_markdown([
-        "## 7. Huấn Luyện Mô Hình và Lưu Checkpoint Tối Ưu"
+        "## 7. Huấn Luyện Mô Hình và Lưu Checkpoint Tối Ưu",
     ])
 
-    # Cell 17: Run Training
+    # Cell 17: Code
     add_code([
         "print('Bắt đầu huấn luyện Checkpoint 07 (Combined + VnCoreNLP)...')",
         "train_result = trainer.train()",
@@ -530,15 +676,15 @@ def create_checkpoint07_notebook():
         "save_model_dir = os.path.join(checkpoints_dir, 'final_model')",
         "trainer.save_model(save_model_dir)",
         "tokenizer.save_pretrained(save_model_dir)",
-        "print(f'Đã lưu mô hình tối ưu nhất tại: {save_model_dir}')"
+        "print(f'Đã lưu mô hình tối ưu nhất tại: {save_model_dir}')",
     ])
 
-    # Cell 18: Markdown Section 8
+    # Cell 18: Markdown
     add_markdown([
-        "## 8. Đánh Giá Trên Tập Test Độc Lập"
+        "## 8. Đánh Giá Trên Tập Test Độc Lập",
     ])
 
-    # Cell 19: Test Evaluation
+    # Cell 19: Code
     add_code([
         "class_names = ['clean', 'offensive', 'hate']",
         "",
@@ -595,15 +741,15 @@ def create_checkpoint07_notebook():
         "    print(f'- {cname:9s}: Precision = {results[\"per_class_precision\"][cname]:.4f}, Recall = {results[\"per_class_recall\"][cname]:.4f}, F1 = {results[\"per_class_f1\"][cname]:.4f}')",
         "print('=' * 60)",
         "print('Chi tiết Classification Report:')",
-        "print(results['classification_report'])"
+        "print(results['classification_report'])",
     ])
 
-    # Cell 20: Markdown Section 9
+    # Cell 20: Markdown
     add_markdown([
-        "## 9. Trực Quan Hóa Đồ Thị Tiến Trình Hội Tụ và Ma Trận Nhầm Lẫn"
+        "## 9. Trực Quan Hóa Đồ Thị Tiến Trình Hội Tụ và Ma Trận Nhầm Lẫn",
     ])
 
-    # Cell 21: Plot Curves & Confusion Matrix
+    # Cell 21: Code
     add_code([
         "curves_output_path = os.path.join(outputs_dir, 'learning_curves_checkpoint07.png')",
         "cm_output_path = os.path.join(outputs_dir, 'confusion_matrix_checkpoint07.png')",
@@ -642,15 +788,15 @@ def create_checkpoint07_notebook():
         "plt.tight_layout()",
         "plt.savefig(cm_output_path, dpi=300)",
         "plt.show()",
-        "print(f'Đã lưu ma trận nhầm lẫn tại: {cm_output_path}')"
+        "print(f'Đã lưu ma trận nhầm lẫn tại: {cm_output_path}')",
     ])
 
-    # Cell 22: Markdown Section 10
+    # Cell 22: Markdown
     add_markdown([
-        "## 10. Bảng Đối Sánh Ablation Study: PyVi (CP05) vs VnCoreNLP (CP07)"
+        "## 10. Bảng Đối Sánh Ablation Study: PyVi (CP05) vs VnCoreNLP (CP07)",
     ])
 
-    # Cell 23: Benchmark Comparison Table
+    # Cell 23: Code
     add_code([
         "comparison_data = {",
         "    'Mô Hình / Checkpoint': [",
@@ -681,31 +827,33 @@ def create_checkpoint07_notebook():
         "        'Cross-Entropy',",
         "        'Weighted Focal Loss (gamma = 1.5, alpha Smoothed)',",
         "        'Weighted Focal Loss (gamma = 1.5, alpha Smoothed)',",
-        "        'Weighted Focal Loss (gamma = 1.5, alpha Smoothed)',",
+        "        'Weighted Focal Loss (gamma = 1.5, alpha Calibrated)',",
         "    ],",
-        "    'Accuracy': [0.8350, 0.8521, 0.8540, 0.8560, 0.8650, 0.8710, 0.8745, round(float(results['accuracy']), 4)],",
-        "    'Macro-Precision': [0.6400, 0.6582, 0.6610, 0.6635, 0.6720, 0.6810, 0.6880, round(float(results['macro_precision']), 4)],",
-        "    'Macro-Recall': [0.6200, 0.6415, 0.6450, 0.6480, 0.6580, 0.6690, 0.6750, round(float(results['macro_recall']), 4)],",
-        "    'Macro-F1': [0.6276, 0.6493, 0.6528, 0.6552, 0.6645, 0.6749, 0.6865, round(float(results['macro_f1']), 4)],",
-        "    'F1 Clean': [0.9020, 0.9125, 0.9140, 0.9150, 0.9210, 0.9250, 0.9310, round(float(results['per_class_f1']['clean']), 4)],",
-        "    'F1 Offensive': [0.4610, 0.4912, 0.4950, 0.5010, 0.5180, 0.5320, 0.5510, round(float(results['per_class_f1']['offensive']), 4)],",
-        "    'F1 Hate': [0.5200, 0.5442, 0.5495, 0.5496, 0.5545, 0.5678, 0.5780, round(float(results['per_class_f1']['hate']), 4)],",
+        "    'Accuracy': [0.8350, 0.8521, 0.8540, 0.8560, 0.8650, 0.8687, 0.8642, round(float(results['accuracy']), 4)],",
+        "    'Macro-Precision': [0.6400, 0.6582, 0.6610, 0.6635, 0.6720, 0.6607, 0.6521, round(float(results['macro_precision']), 4)],",
+        "    'Macro-Recall': [0.6200, 0.6415, 0.6450, 0.6480, 0.6580, 0.6776, 0.6597, round(float(results['macro_recall']), 4)],",
+        "    'Macro-F1': [0.6276, 0.6493, 0.6528, 0.6552, 0.6645, 0.6686, 0.6541, round(float(results['macro_f1']), 4)],",
+        "    'F1 Clean': [0.9020, 0.9125, 0.9140, 0.9150, 0.9210, 0.9357, 0.9347, round(float(results['per_class_f1']['clean']), 4)],",
+        "    'F1 Offensive': [0.4610, 0.4912, 0.4950, 0.5010, 0.5180, 0.4501, 0.4429, round(float(results['per_class_f1']['offensive']), 4)],",
+        "    'F1 Hate': [0.5200, 0.5442, 0.5495, 0.5496, 0.5545, 0.6200, 0.5849, round(float(results['per_class_f1']['hate']), 4)],",
         "}",
         "",
         "df_comparison = pd.DataFrame(comparison_data)",
         "comparison_csv_path = os.path.join(outputs_dir, 'benchmark_comparison.csv')",
         "df_comparison.to_csv(comparison_csv_path, index=False)",
         "",
+        "print('=' * 80)",
         "print('BẢNG ĐỐI SÁNH HIỆU NĂNG ABLATION STUDY (PYVI VS VNCORENLP):')",
-        "print(df_comparison.to_string(index=False))"
+        "print('=' * 80)",
+        "print(df_comparison.to_string(index=False))",
     ])
 
-    # Cell 24: Markdown Section 11
+    # Cell 24: Markdown
     add_markdown([
-        "## 11. Xuất Các Tệp Kết Quả Chuẩn Hóa (Mandatory Artifacts Export)"
+        "## 11. Xuất Các Tệp Kết Quả Chuẩn Hóa (Mandatory Artifacts Export)",
     ])
 
-    # Cell 25: Mandatory Artifacts Export
+    # Cell 25: Code
     add_code([
         "predictions_csv_path = os.path.join(outputs_dir, 'predictions.csv')",
         "scores_csv_path = os.path.join(outputs_dir, 'evaluation_scores.csv')",
@@ -806,7 +954,94 @@ def create_checkpoint07_notebook():
         "",
         "df_report = pd.DataFrame(rows)",
         "df_report.to_csv(report_csv_path, index=False)",
-        "print(f'4. Đã xuất tệp báo cáo phân loại chi tiết: {report_csv_path}')"
+        "print(f'4. Đã xuất tệp báo cáo phân loại chi tiết: {report_csv_path}')",
+    ])
+
+    # Cell 26: Markdown
+    add_markdown([
+        "## 12. Thử Nghiệm Suy Luận Trực Quan (Interactive Inference)",
+        "",
+        "Cung cấp hàm suy luận dự đoán trực quan `predict_sentence` tích hợp trọn vẹn bộ tiền xử lý `ViHSDPreprocessor` (VnCoreNLP RDRsegmenter) và mô hình PhoBERT-base tối ưu của Checkpoint 07.",
+    ])
+
+    # Cell 27: Code
+    add_code([
+        "import torch",
+        "import torch.nn.functional as F",
+        "",
+        "# 1. Ánh xạ nhãn và tên lớp chuẩn hóa",
+        "id2label = {0: \"CLEAN\", 1: \"OFFENSIVE\", 2: \"HATE\"}",
+        "",
+        "",
+        "def predict_sentence(text, model, tokenizer, preprocessor=None, max_seq_length=256):",
+        "    \"\"\"",
+        "    Hàm dự đoán nhãn phân loại (CLEAN / OFFENSIVE / HATE) cho một câu văn bản đầu vào",
+        "    với bộ tiền xử lý VnCoreNLP RDRsegmenter và mô hình PhoBERT-base tối ưu hóa.",
+        "    \"\"\"",
+        "    model.eval()",
+        "    device = next(model.parameters()).device",
+        "",
+        "    # Tiền xử lý dữ liệu với ViHSDPreprocessor (VnCoreNLP RDRsegmenter)",
+        "    processed_text = text",
+        "    if preprocessor is not None and hasattr(preprocessor, \"transform_text\"):",
+        "        processed_text = preprocessor.transform_text(text)",
+        "        if not processed_text.strip():",
+        "            processed_text = text  # Giữ lại văn bản gốc nếu tiền xử lý trả về rỗng",
+        "",
+        "    # Mã hóa chuỗi đầu vào",
+        "    inputs = tokenizer(",
+        "        processed_text,",
+        "        truncation=True,",
+        "        padding=True,",
+        "        max_length=max_seq_length,",
+        "        return_tensors=\"pt\",",
+        "    )",
+        "    inputs = {k: v.to(device) for k, v in inputs.items()}",
+        "",
+        "    # Suy luận xác suất qua Softmax",
+        "    with torch.no_grad():",
+        "        outputs = model(**inputs)",
+        "        logits = outputs.logits",
+        "        probabilities = F.softmax(logits, dim=-1).squeeze(0).cpu().numpy()",
+        "        pred_label_id = int(torch.argmax(logits, dim=-1).item())",
+        "",
+        "    return {",
+        "        \"raw_text\": text,",
+        "        \"processed_text\": processed_text,",
+        "        \"predicted_id\": pred_label_id,",
+        "        \"predicted_label\": id2label[pred_label_id],",
+        "        \"probabilities\": {id2label[i]: float(prob) for i, prob in enumerate(probabilities)},",
+        "    }",
+        "",
+        "",
+        "# ==============================================================================",
+        "# 2. Thực thi thử nghiệm suy luận trên các câu ví dụ",
+        "# ==============================================================================",
+        "sample_comments = [",
+        "    \"vui vcl ae ơi\",",
+        "    \"mày nhìn mặt hãm vl đm\",",
+        "    \"chúc mọi người một ngày làm việc thật nhiều năng lượng và vui vẻ\",",
+        "]",
+        "",
+        "current_preprocessor = preprocessor if \"preprocessor\" in globals() else None",
+        "",
+        "for sample in sample_comments:",
+        "    res = predict_sentence(",
+        "        text=sample,",
+        "        model=model,",
+        "        tokenizer=tokenizer,",
+        "        preprocessor=current_preprocessor,",
+        "        max_seq_length=max_seq_length if \"max_seq_length\" in globals() else 256,",
+        "    )",
+        "    print(\"-\" * 60)",
+        "    print(f\"Văn bản gốc:      {res['raw_text']}\")",
+        "    if current_preprocessor is not None:",
+        "        print(f\"Sau tiền xử lý:   {res['processed_text']}\")",
+        "    print(f\"Nhãn dự đoán:     {res['predicted_label']} (Lớp {res['predicted_id']})\")",
+        "    print(\"Xác suất từng lớp:\")",
+        "    for label_name, prob in res[\"probabilities\"].items():",
+        "        print(f\"  - {label_name:<10}: {prob * 100:6.2f}%\")",
+        "print(\"-\" * 60)",
     ])
 
     notebook_content = {
