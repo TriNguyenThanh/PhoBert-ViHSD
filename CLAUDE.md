@@ -4,9 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This repository focuses on research and model enhancement for Vietnamese Hate Speech Detection (ViHSD), based on the benchmark paper *"A Large-scale Dataset for Hate Speech Detection on Vietnamese Social Media Texts"* (Luu et al., 2021).
+This repository focuses on research and model enhancement for Vietnamese Hate Speech Detection (ViHSD), based on the benchmark paper _"A Large-scale Dataset for Hate Speech Detection on Vietnamese Social Media Texts"_ (Luu et al., 2021).
 
 The task is a 3-class classification problem on Vietnamese social media comments:
+
 - `0`: CLEAN (~83% of dataset)
 - `1`: OFFENSIVE (~7% of dataset)
 - `2`: HATE (~10% of dataset)
