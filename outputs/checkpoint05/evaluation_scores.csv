@@ -1,15 +1,15 @@
-metric,value
-accuracy,0.8616
-macro_precision,0.6473
-macro_recall,0.6614
-macro_f1,0.6522
-micro_f1,0.8616
-precision_clean,0.9387
-recall_clean,0.9259
-f1_clean,0.9321
-precision_offensive,0.4118
-recall_offensive,0.4499
-f1_offensive,0.4276
-precision_hate,0.5912
-recall_hate,0.6083
-f1_hate,0.5968
+metric,value,mean,std
+accuracy,0.8615 ± 0.0128,0.8616,0.0128
+macro_precision,0.6473 ± 0.0283,0.6473,0.0283
+macro_recall,0.6614 ± 0.0161,0.6614,0.0161
+macro_f1,0.6522 ± 0.0134,0.6522,0.0134
+micro_f1,0.8615 ± 0.0128,0.8616,0.0128
+precision_clean,0.9387 ± 0.0092,0.9387,0.0092
+recall_clean,0.9259 ± 0.0206,0.9259,0.0206
+f1_clean,0.9321 ± 0.0062,0.9321,0.0062
+precision_offensive,0.4118 ± 0.0479,0.4118,0.0479
+recall_offensive,0.4499 ± 0.0328,0.4499,0.0328
+f1_offensive,0.4276 ± 0.0237,0.4276,0.0237
+precision_hate,0.5912 ± 0.0491,0.5912,0.0491
+recall_hate,0.6083 ± 0.0516,0.6083,0.0516
+f1_hate,0.5968 ± 0.0157,0.5968,0.0157
