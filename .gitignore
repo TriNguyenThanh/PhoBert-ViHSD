@@ -225,7 +225,6 @@ __marimo__/
 # GitNexus
 .gitnexus/
 
-/outputs
 /vncorenlp
 /Scripts
 /kaggle_runs

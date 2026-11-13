@@ -1,0 +1,15 @@
+metric,value
+accuracy,0.8748
+macro_precision,0.6776
+macro_recall,0.6227
+macro_f1,0.645
+micro_f1,0.8748
+precision_clean,0.9234
+recall_clean,0.9549
+f1_clean,0.9389
+precision_offensive,0.4794
+recall_offensive,0.3384
+f1_offensive,0.3955
+precision_hate,0.6302
+recall_hate,0.5749
+f1_hate,0.6008

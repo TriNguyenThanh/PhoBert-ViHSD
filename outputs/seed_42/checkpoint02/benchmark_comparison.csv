@@ -1,0 +1,4 @@
+Mô Hình / Checkpoint,Độ Dài,Số Epochs,Hàm Mất Mát,Accuracy,Macro-Precision,Macro-Recall,Macro-F1,F1 Clean,F1 Offensive,F1 Hate
+"Baseline Gốc (Lưu et al., 2021)",100,2,Cross-Entropy,0.835,0.64,0.62,0.6276,0.902,0.461,0.52
+Checkpoint 01 (Baseline + Smoothed CW),100,2,Weighted Cross-Entropy (Smoothed),0.8521,0.6582,0.6415,0.6493,0.9125,0.4912,0.5442
+Checkpoint 02 (Baseline + Focal Loss gamma = 1.5 - Hiện tại),100,2,Focal Loss (gamma = 1.5),0.8654,0.6506,0.6,0.6219,0.9341,0.3688,0.5627

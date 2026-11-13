@@ -1,0 +1,7 @@
+class,precision,recall,f1_score,support
+clean,0.9413,0.9111,0.926,5548
+offensive,0.3605,0.4189,0.3875,444
+hate,0.5617,0.6483,0.6019,688
+accuracy,,,0.8513,6680
+macro avg,0.6212,0.6594,0.6385,6680
+weighted avg,0.8636,0.8513,0.8568,6680
