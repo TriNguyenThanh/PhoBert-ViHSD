@@ -1,0 +1,151 @@
+{
+  "class_order": {
+    "0": "clean",
+    "1": "offensive",
+    "2": "hate"
+  },
+  "sample_count": 6680,
+  "class_support": [
+    5548,
+    444,
+    688
+  ],
+  "baseline": {
+    "origin": "Manually transcribed from baseline/confusion_matrix.png",
+    "seed": null,
+    "predictions_available": false,
+    "validation_limit": "Counts cannot be checked against baseline predictions."
+  },
+  "selection": {
+    "rule": "Highest numeric mean Macro-F1 across four seeds; checkpoint name ascending breaks ties. Within that checkpoint, highest reported run Macro-F1; smallest seed breaks ties.",
+    "checkpoint": "checkpoint06",
+    "seed": 789,
+    "macro_f1_mean": 0.6587,
+    "macro_f1_std": 0.0067,
+    "reported_run_macro_f1": 0.6649
+  },
+  "metrics": "Calculated directly from confusion matrices; delta_pp = 100 * (best - baseline); zero division = 0.",
+  "checks": {
+    "best_predictions_match_matrix": true,
+    "best_metrics_match_csv_to_rounding": true,
+    "matching_class_support": true
+  },
+  "sources": [
+    {
+      "path": "outputs/baseline/confusion_matrix.csv",
+      "sha256": "90212f1e8a7994ef2b0eec7d665c827158b6de4dfcbd0eddfbf71e50a39e35af"
+    },
+    {
+      "path": "outputs/baseline/confusion_matrix.png",
+      "sha256": "bab144c492734daca01b182fc15ff71ac743087960de4b351b82f8e2b3411fd4"
+    },
+    {
+      "path": "outputs/evaluation_scores_mean_4seeds.csv",
+      "sha256": "10e2fa4ee62401c54aa927c2cf85e3c3d04052b2fff2d157281bcf8ca89de752"
+    },
+    {
+      "path": "outputs/seed_1049/checkpoint01/evaluation_scores.csv",
+      "sha256": "e27893be0a073817853df936d2697f495e4174a9ab89da845367e8dcac3edab4"
+    },
+    {
+      "path": "outputs/seed_1049/checkpoint02/evaluation_scores.csv",
+      "sha256": "10ed2edf1416607d9437031fc295681b0e0a87697b298ae2be7101f22260c7c7"
+    },
+    {
+      "path": "outputs/seed_1049/checkpoint03/evaluation_scores.csv",
+      "sha256": "5a4068313bd3ad79314189d7b00d867bf8642b23e64b4207338d65304e7111db"
+    },
+    {
+      "path": "outputs/seed_1049/checkpoint04/evaluation_scores.csv",
+      "sha256": "abd0647d4a1946452328c9a167c92fbe09e7a4b2dd0918c806b9da4360491d4d"
+    },
+    {
+      "path": "outputs/seed_1049/checkpoint05/evaluation_scores.csv",
+      "sha256": "412e5f98d8b1ec6f1c48692018ce4c93c3dfd80d1cf0e755ecde62935245e407"
+    },
+    {
+      "path": "outputs/seed_1049/checkpoint06/evaluation_scores.csv",
+      "sha256": "02da95f16d521540c608930dc76a7a38546cdedb0570c4e512c99d047b9fd199"
+    },
+    {
+      "path": "outputs/seed_42/checkpoint01/evaluation_scores.csv",
+      "sha256": "d48ee7e43a18ca1933899642fb743c2a8eaf9146ffd0740624f3b50b4d9389f8"
+    },
+    {
+      "path": "outputs/seed_42/checkpoint02/evaluation_scores.csv",
+      "sha256": "ce5251a36dca03f508621e142eaff16cbbc7dfa127102046ea752a9f946997f7"
+    },
+    {
+      "path": "outputs/seed_42/checkpoint03/evaluation_scores.csv",
+      "sha256": "4f7081bf6057a6e029036e6edf4f6dffa10644abeb070a042bbc9a2ff3492179"
+    },
+    {
+      "path": "outputs/seed_42/checkpoint04/evaluation_scores.csv",
+      "sha256": "d1d16fa05ed0624e3b26786afebc245977bab34dd566b2e442a582f91f67dbfe"
+    },
+    {
+      "path": "outputs/seed_42/checkpoint05/evaluation_scores.csv",
+      "sha256": "73b1469361b753c9e3322e4642adfc1ee0bba48950d79be10814d048a2fdc1ef"
+    },
+    {
+      "path": "outputs/seed_42/checkpoint06/evaluation_scores.csv",
+      "sha256": "abfb22b30844c085e6ec877d8330b7932384532bc2832bf4d48e5f0959ea1348"
+    },
+    {
+      "path": "outputs/seed_456/checkpoint01/evaluation_scores.csv",
+      "sha256": "03536a414a00e7672383b1989e55d1fd94748fae996ca526a7f65a8579eb90b7"
+    },
+    {
+      "path": "outputs/seed_456/checkpoint02/evaluation_scores.csv",
+      "sha256": "e85b5fbe57d81d582989542cb14c762ac8b3d0e41c5ce0cf886bc68b0a0fba7a"
+    },
+    {
+      "path": "outputs/seed_456/checkpoint03/evaluation_scores.csv",
+      "sha256": "596dd397d3474981064510e411d366d7e09f963abb228fa820c29fa5bb603fdc"
+    },
+    {
+      "path": "outputs/seed_456/checkpoint04/evaluation_scores.csv",
+      "sha256": "6ab82c971b6666b8f9d6bcaa47350ecc3cd5302fbdc372f554518523f4426180"
+    },
+    {
+      "path": "outputs/seed_456/checkpoint05/evaluation_scores.csv",
+      "sha256": "2b73a26159e2e72da1b311f0a4389df81713bd4472f02d2296ca132a6d089786"
+    },
+    {
+      "path": "outputs/seed_456/checkpoint06/evaluation_scores.csv",
+      "sha256": "85893b16ed3e2af2970b6c3017a0245b0eee5aca0b6a03a4113600fbd31093bf"
+    },
+    {
+      "path": "outputs/seed_789/checkpoint01/evaluation_scores.csv",
+      "sha256": "e2cac9b26888362df21468740270cc24736054c6953cc2456342017e051aa374"
+    },
+    {
+      "path": "outputs/seed_789/checkpoint02/evaluation_scores.csv",
+      "sha256": "1d45a05002d839ea29522f781851d7d0a23ee6a7120dbbce27e5a08e1fc96b97"
+    },
+    {
+      "path": "outputs/seed_789/checkpoint03/evaluation_scores.csv",
+      "sha256": "2a0887626902ad5c3be458aa40acc8dc249a7bfd6ca41a6a35ac3a6b1e7ab88e"
+    },
+    {
+      "path": "outputs/seed_789/checkpoint04/evaluation_scores.csv",
+      "sha256": "05207f3756ca4911d93ceba5cbe3835660ecc481e2178cba47d61c47f3577bb6"
+    },
+    {
+      "path": "outputs/seed_789/checkpoint05/evaluation_scores.csv",
+      "sha256": "c41d1a64a4d8cbabd3b5310fefe250d224b1e67d828041e8dd3e1b63f604d43d"
+    },
+    {
+      "path": "outputs/seed_789/checkpoint06/confusion_matrix.csv",
+      "sha256": "acf9c6304135a46bf0931835b9084ec094c0ea39ea8c315ba1d7787473ce0998"
+    },
+    {
+      "path": "outputs/seed_789/checkpoint06/evaluation_scores.csv",
+      "sha256": "7552ff42de39fd4112316923f4a6b5f953211c69782cac3320017b4cb53bfdfd"
+    },
+    {
+      "path": "outputs/seed_789/checkpoint06/predictions.csv",
+      "sha256": "6c38e0d8a361383f020106dff7123f3f33f1071fc1f8cdc59ec2ed72c0fa5ac0"
+    }
+  ]
+}

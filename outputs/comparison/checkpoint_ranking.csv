@@ -1,0 +1,7 @@
+cp,macro_f1_mean,std,best_seed,best_macro_f1
+checkpoint06,0.6587,0.0067,789,0.6649
+checkpoint05,0.6522,0.0134,456,0.6626
+checkpoint03,0.645,0.0138,42,0.6627
+checkpoint04,0.6444,0.0083,456,0.6506
+checkpoint01,0.6435,0.0121,789,0.6554
+checkpoint02,0.6387,0.0115,456,0.6479
