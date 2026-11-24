@@ -1,7 +1,7 @@
-"""Gói Pipeline chứa các mô-đun xử lý dữ liệu, mô hình và đánh giá cho bài toán ViHSD."""
-from Pipeline.preprocessing import ViHSDPreprocessor
-from Pipeline.dataset import BuildDataset
-from Pipeline.evaluate import (
+"""Các thành phần pipeline xử lý và đánh giá bài toán ViHSD."""
+from .preprocessing import ViHSDPreprocessor
+from .dataset import BuildDataset
+from .evaluate import (
     compute_metrics_eval,
     evaluate_predictions,
     plot_confusion_matrix,
@@ -10,13 +10,13 @@ from Pipeline.evaluate import (
     save_scores_summary,
     export_evaluation_report,
 )
-from Pipeline.train import (
+from .train import (
     create_differential_optimizer,
     get_training_arguments,
     setup_trainer,
     plot_training_curves,
 )
-from Pipeline.losses import (
+from .losses import (
     FocalLoss,
     FocalLossTrainer,
     WeightedCrossEntropyTrainer,

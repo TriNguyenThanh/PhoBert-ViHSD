@@ -3,10 +3,10 @@ import os
 import sys
 import pandas as pd
 
-# Thêm thư mục gốc vào sys.path để import mô-đun Pipeline khi chạy độc lập
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# Thêm thư mục src vào sys.path để chạy tập lệnh trực tiếp trong checkout.
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
-from Pipeline.preprocessing import ViHSDPreprocessor
+from vihsd.preprocessing import ViHSDPreprocessor
 
 
 # Phân tích và thiết lập các đối số dòng lệnh phục vụ tiền xử lý tập dữ liệu

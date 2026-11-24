@@ -59,7 +59,7 @@ Baseline + Cân Bằng Lớp Tĩnh   Baseline + Cân Bằng Lớp Động
 ## 3. Đặc Tả Chi Tiết Từng Checkpoint Thực Nghiệm
 
 ### Checkpoint 01: Thiết Lập Baseline Kết Hợp Cân Bằng Lớp Tĩnh (Smoothed Class Weights)
-- **Tên notebook:** `Notebook/checkpoint01_baseline_class_weights.ipynb`
+- **Tên notebook:** `notebooks/checkpoint01_baseline_class_weights.ipynb`
 - **Mục tiêu khoa học:** Đánh giá độc lập tác động của việc bổ sung vector trọng số tĩnh nhằm phạt sai số trên các lớp thiểu số (OFFENSIVE, HATE) trên cấu hình Baseline gốc của Lưu et al. (2021).
 - **Kỹ thuật cốt lõi:**
   - Áp dụng công thức làm mịn căn bậc hai (Smoothed Inverse Class Frequency):
@@ -69,7 +69,7 @@ Baseline + Cân Bằng Lớp Tĩnh   Baseline + Cân Bằng Lớp Động
 - **Thư mục đầu ra:** `outputs/checkpoint01/`
 
 ### Checkpoint 02: Thiết Lập Baseline Kết Hợp Cân Bằng Lớp Động Theo Độ Khó (Focal Loss, gamma = 1.5)
-- **Tên notebook:** `Notebook/checkpoint02_baseline_focal_loss.ipynb`
+- **Tên notebook:** `notebooks/checkpoint02_baseline_focal_loss.ipynb`
 - **Mục tiêu khoa học:** Khảo sát cơ chế điều chế tổn thất động theo độ khó phân loại mà không sử dụng vector trọng số tĩnh ($\alpha = \text{None}$) trên cấu hình Baseline gốc.
 - **Kỹ thuật cốt lõi:**
   - Hàm mất mát Focal Loss đa lớp:
@@ -80,7 +80,7 @@ Baseline + Cân Bằng Lớp Tĩnh   Baseline + Cân Bằng Lớp Động
 - **Thư mục đầu ra:** `outputs/checkpoint02/`
 
 ### Checkpoint 03: Tiền Xử Lý và Chuẩn Hóa Dữ Liệu Ngôn Ngữ Mạng Xã Hội (Data Preprocessing)
-- **Tên notebook:** `Notebook/checkpoint03_data_preprocessing.ipynb`
+- **Tên notebook:** `notebooks/checkpoint03_data_preprocessing.ipynb`
 - **Mục tiêu khoa học:** Khắc phục triệt để sai lầm của bài báo gốc khi loại bỏ stopwords và xóa emoji bừa bãi bằng cách xây dựng module tiền xử lý chuyên biệt `ViHSDPreprocessor`.
 - **Kỹ thuật cốt lõi:**
   - Chuẩn hóa viết tắt và tiếng lóng mạng xã hội với từ điển 412 quy tắc (`teencode.csv`).
@@ -92,7 +92,7 @@ Baseline + Cân Bằng Lớp Tĩnh   Baseline + Cân Bằng Lớp Động
 - **Thư mục đầu ra:** `outputs/checkpoint03/`
 
 ### Checkpoint 04: Tối Ưu Hóa Chiến Lược Huấn Luyện Nâng Cao (Advanced Training Strategies)
-- **Tên notebook:** `Notebook/checkpoint04_training_strategies.ipynb`
+- **Tên notebook:** `notebooks/checkpoint04_training_strategies.ipynb`
 - **Mục tiêu khoa học:** Khắc phục hạn chế thời gian học quá ngắn (2 epochs) và độ dài chuỗi bị cắt cụt (100 tokens) của baseline.
 - **Kỹ thuật cốt lõi:**
   - Mở rộng độ dài chuỗi tối đa lên `max_length = 256` (khai thác trọn vẹn vị trí nhúng tối đa của PhoBERT).
@@ -103,7 +103,7 @@ Baseline + Cân Bằng Lớp Tĩnh   Baseline + Cân Bằng Lớp Động
 - **Thư mục đầu ra:** `outputs/checkpoint04/`
 
 ### Checkpoint 05: Tích Hợp Toàn Diện Các Giải Pháp Nâng Cấp (Combined Enhancements)
-- **Tên notebook:** `Notebook/checkpoint05_combined_enhancements.ipynb`
+- **Tên notebook:** `notebooks/checkpoint05_combined_enhancements.ipynb`
 - **Mục tiêu khoa học:** Kết hợp đồng thời 4 cải tiến độc lập (CP01 Smoothed CW + CP02 Focal Loss + CP03 Preprocessing + CP04 Training strategies) trên nền tảng `vinai/phobert-base` để tạo ra mô hình tối ưu toàn diện.
 - **Kỹ thuật cốt lõi:**
   - Tiền xử lý dữ liệu: `ViHSDPreprocessor` (CP03).
@@ -115,7 +115,7 @@ Baseline + Cân Bằng Lớp Tĩnh   Baseline + Cân Bằng Lớp Động
 - **Thư mục đầu ra:** `outputs/checkpoint05/`
 
 ### Checkpoint 06: Hiện Đại Hóa Kiến Trúc Mô Hình (PhoBERT-base-v2 Modernization)
-- **Tên notebook:** `Notebook/checkpoint06_phobert_base_v2.ipynb`
+- **Tên notebook:** `notebooks/checkpoint06_phobert_base_v2.ipynb`
 - **Mục tiêu khoa học:** Đánh giá bước nhảy vọt về năng lực biểu diễn ngôn ngữ khi nâng cấp backbone từ `vinai/phobert-base` thế hệ đầu sang `vinai/phobert-base-v2` thế hệ mới.
 - **Kỹ thuật cốt lõi:**
   - Backbone `vinai/phobert-base-v2` được tiền huấn luyện trên 20GB văn bản tiếng Việt hiện đại (gấp hơn 5 lần bản v1).

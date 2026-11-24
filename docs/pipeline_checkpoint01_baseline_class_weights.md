@@ -63,7 +63,7 @@ Tài liệu này đặc tả chi tiết kiến trúc luồng dữ liệu, công 
 
 ## 4. Danh Mục Tệp Kết Quả Bắt Buộc (Mandatory Artifacts)
 
-Mọi lần chạy của notebook `Notebook/checkpoint01_baseline_class_weights.ipynb` đều lưu các kết quả sau vào `outputs/checkpoint01/`:
+Mọi lần chạy của notebook `notebooks/checkpoint01_baseline_class_weights.ipynb` đều lưu các kết quả sau vào `outputs/checkpoint01/`:
 1. `predictions.csv`: Cột `id`, `text`, `ground_truth`, `predicted_label`.
 2. `confusion_matrix_checkpoint01.png` & `confusion_matrix.csv`: Biểu đồ nhiệt Seaborn và dữ liệu ma trận nhầm lẫn.
 3. `evaluation_scores.csv`: Tổng hợp các chỉ số Macro-F1, Micro-F1, Accuracy, Precision, Recall và F1 từng lớp.

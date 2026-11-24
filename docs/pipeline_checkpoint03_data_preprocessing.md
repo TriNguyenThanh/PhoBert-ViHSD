@@ -59,7 +59,7 @@ Tài liệu này đặc tả chi tiết thiết kế lớp xử lý chuyên bi�
 
 ## 4. Danh Mục Tệp Kết Quả Bắt Buộc (Mandatory Artifacts)
 
-Mọi lần chạy của notebook `Notebook/checkpoint03_data_preprocessing.ipynb` đều lưu các kết quả sau vào `outputs/checkpoint03/`:
+Mọi lần chạy của notebook `notebooks/checkpoint03_data_preprocessing.ipynb` đều lưu các kết quả sau vào `outputs/checkpoint03/`:
 1. `predictions.csv`: Cột `id`, `text`, `ground_truth`, `predicted_label`.
 2. `confusion_matrix_checkpoint03.png` & `confusion_matrix.csv`: Biểu đồ nhiệt Seaborn và dữ liệu ma trận nhầm lẫn.
 3. `evaluation_scores.csv`: Điểm số tóm tắt chi tiết các độ đo.

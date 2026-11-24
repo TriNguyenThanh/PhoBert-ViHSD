@@ -1,6 +1,6 @@
 # Đề Xuất Các Hướng Cải Tiến Mô Hình Phát Hiện Phát Ngôn Thù Ghét (ViHSD)
 
-Tài liệu này tổng hợp phân tích học thuật từ bài báo nghiên cứu _"A Large-scale Dataset for Hate Speech Detection on Vietnamese Social Media Texts"_ (Lưu et al., 2021), rà soát hiện trạng thực nghiệm trong notebook `Paper/ViHSD_monolingual_Transformers.ipynb`, và đề xuất các phương án cải tiến mô hình toàn diện theo 4 trục kỹ thuật chính.
+Tài liệu này tổng hợp phân tích học thuật từ bài báo nghiên cứu _"A Large-scale Dataset for Hate Speech Detection on Vietnamese Social Media Texts"_ (Lưu et al., 2021), rà soát hiện trạng thực nghiệm trong notebook `references/ViHSD_monolingual_Transformers.ipynb`, và đề xuất các phương án cải tiến mô hình toàn diện theo 4 trục kỹ thuật chính.
 
 ---
 

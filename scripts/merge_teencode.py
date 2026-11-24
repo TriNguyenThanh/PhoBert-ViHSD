@@ -1,7 +1,7 @@
 """
 Kich ban hop nhat va chuan hoa tu dien teencode tu hai nguon:
-- Scripts/teencode.json (nguon uu tien cao nhat)
-- Scripts/teencode.json (nguon bo sung)
+- scripts/teencode.json (nguon uu tien cao nhat)
+- scripts/teencode.json (nguon bo sung)
 
 Ket qua xuat ra:
 - data/teencode.csv (dong bo dinh dang voi cac tap tin dataset khac)
@@ -42,8 +42,8 @@ def clean_teencode_key(key: str) -> list[str]:
 
 
 def main():
-    json_path = "Scripts/teencode.json"
-    xlsx_path = "Scripts/teencode.xlsx"
+    json_path = "scripts/teencode.json"
+    xlsx_path = "scripts/teencode.xlsx"
     output_csv_path = "data/teencode.csv"
 
     # 1. Doc nguon bo sung tu file Excel

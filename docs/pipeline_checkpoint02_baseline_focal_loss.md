@@ -60,7 +60,7 @@ Tài liệu này đặc tả chi tiết cơ sở toán học, thiết kế mô-�
 
 ## 4. Danh Mục Tệp Kết Quả Bắt Buộc (Mandatory Artifacts)
 
-Mọi lần chạy của notebook `Notebook/checkpoint02_baseline_focal_loss.ipynb` đều lưu các kết quả sau vào `outputs/checkpoint02/`:
+Mọi lần chạy của notebook `notebooks/checkpoint02_baseline_focal_loss.ipynb` đều lưu các kết quả sau vào `outputs/checkpoint02/`:
 1. `predictions.csv`: Cột `id`, `text`, `ground_truth`, `predicted_label`.
 2. `confusion_matrix_checkpoint02.png` & `confusion_matrix.csv`: Biểu đồ nhiệt Seaborn và dữ liệu ma trận nhầm lẫn.
 3. `evaluation_scores.csv`: Điểm số tóm tắt chi tiết các độ đo.

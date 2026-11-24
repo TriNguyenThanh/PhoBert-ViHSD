@@ -81,7 +81,7 @@ Tài liệu này đặc tả chi tiết cơ sở khoa học, quy trình chuyển
 
 ## 5. Danh Mục Tệp Kết Quả Bắt Buộc (Mandatory Artifacts)
 
-Mọi lần chạy của notebook `Notebook/checkpoint06_phobert_base_v2.ipynb` đều lưu các kết quả sau vào `outputs/checkpoint06/`:
+Mọi lần chạy của notebook `notebooks/checkpoint06_phobert_base_v2.ipynb` đều lưu các kết quả sau vào `outputs/checkpoint06/`:
 1. `predictions.csv`: Cột `id`, `text`, `ground_truth`, `predicted_label`.
 2. `confusion_matrix_checkpoint06.png` & `confusion_matrix.csv`: Biểu đồ nhiệt Seaborn và dữ liệu ma trận nhầm lẫn.
 3. `learning_curves_checkpoint06.png`: Đồ thị tiến trình hội tụ Loss và Macro-F1.

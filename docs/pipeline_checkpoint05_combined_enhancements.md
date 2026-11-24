@@ -63,7 +63,7 @@ Tài liệu này đặc tả chi tiết kiến trúc tích hợp đồng thời 
 
 ## 4. Danh Mục Tệp Kết Quả Bắt Buộc (Mandatory Artifacts)
 
-Mọi lần chạy của notebook `Notebook/checkpoint05_combined_enhancements.ipynb` đều lưu các kết quả sau vào `outputs/checkpoint05/`:
+Mọi lần chạy của notebook `notebooks/checkpoint05_combined_enhancements.ipynb` đều lưu các kết quả sau vào `outputs/checkpoint05/`:
 1. `predictions.csv`: Cột `id`, `text`, `ground_truth`, `predicted_label`.
 2. `confusion_matrix_checkpoint05.png` & `confusion_matrix.csv`: Biểu đồ nhiệt Seaborn và dữ liệu ma trận nhầm lẫn.
 3. `learning_curves_checkpoint05.png`: Đồ thị tiến trình hội tụ Loss và Macro-F1.

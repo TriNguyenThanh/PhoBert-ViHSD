@@ -183,7 +183,7 @@ print(df_report.to_string(index=False))
 
 ## 3. Checkpoint 2 Specification: Training Strategy Optimization
 
-- **Notebook File:** `Notebook/checkpoint02_training_strategies.ipynb`
+- **Notebook File:** `notebooks/checkpoint02_training_strategies.ipynb`
 - **Output Directory:** `outputs/checkpoint02/`
 - **Primary Objective:** Address the shortcomings of baseline training: increase sequence length to `max_length = 256`, extend training duration (8-10 epochs), apply differential learning rates, and save the best model based on validation Macro-F1 with Early Stopping.
 
@@ -252,7 +252,7 @@ def create_differential_optimizer(model, backbone_lr=2e-5, head_lr=1e-4, weight_
 
 ## 4. Checkpoint 3 Specification: Focal Loss for Hard Example Mining
 
-- **Notebook File:** `Notebook/checkpoint03_focal_loss.ipynb`
+- **Notebook File:** `notebooks/checkpoint03_focal_loss.ipynb`
 - **Output Directory:** `outputs/checkpoint03/`
 - **Primary Objective:** Mitigate majority-class gradient dominance by introducing Focal Loss to down-weight easy examples ($p_t \to 1$) and focus optimization on difficult minority samples.
 
@@ -313,7 +313,7 @@ class FocalLossTrainer(Trainer):
 
 ## 5. Checkpoint 4 Specification: Class-Weighted Cross-Entropy Loss
 
-- **Notebook File:** `Notebook/checkpoint04_class_weights.ipynb`
+- **Notebook File:** `notebooks/checkpoint04_class_weights.ipynb`
 - **Output Directory:** `outputs/checkpoint04/`
 - **Primary Objective:** Counterbalance class frequency disparity by applying static penalty weights inversely proportional to training class frequencies.
 
@@ -360,7 +360,7 @@ class WeightedCrossEntropyTrainer(Trainer):
 
 ## 6. Checkpoint 5 Specification: Combined Weighted Focal Loss & Ablation Study
 
-- **Notebook File:** `Notebook/checkpoint05_combined_focal_classweight.ipynb`
+- **Notebook File:** `notebooks/checkpoint05_combined_focal_classweight.ipynb`
 - **Output Directory:** `outputs/checkpoint05/`
 - **Primary Objective:** Unify static class weighting ($\alpha_c$ from Checkpoint 4) and dynamic sample hardness modulation ($\gamma$ from Checkpoint 3) into a single composite objective, concluding with a comprehensive 6-way ablation benchmark and qualitative error analysis.
 
@@ -439,7 +439,7 @@ Extract and inspect misclassified sample cohorts:
 
 ## 7. Checkpoint 6 Specification: Alternative Backbone Architecture (PhoBERT-large / Alternative Model)
 
-- **Notebook File:** `Notebook/checkpoint06_alternative_model.ipynb`
+- **Notebook File:** `notebooks/checkpoint06_alternative_model.ipynb`
 - **Output Directory:** `outputs/checkpoint06/`
 - **Primary Objective:** Investigate the empirical impact of scaling up the foundation model capacity (`vinai/phobert-large` with 370M parameters, 24 layers, 1024 hidden size) or alternative transformer backbones on detecting subtle, figurative, and sarcastic Vietnamese hate speech compared to `vinai/phobert-base` (135M parameters, 12 layers, 768 hidden size).
 
@@ -487,7 +487,7 @@ Extract and inspect misclassified sample cohorts:
 Prior to approving any checkpoint notebook as complete, confirm every item below:
 
 - [ ] **Colab Environment:** Cell 1 cleanly mounts Google Drive and establishes persistent directories under `MyDrive/NLP_PhoBert_ViHSD`.
-- [ ] **100% Self-Contained:** Zero imports from local `.py` scripts or the `Pipeline/` folder. All classes and helper functions are defined inline.
+- [ ] **100% Self-Contained:** Zero imports from local `.py` scripts or the `src/vihsd/` folder. All classes and helper functions are defined inline.
 - [ ] **Preserved Outputs:** Modifying existing `.ipynb` files was conducted strictly via `NotebookEdit`, leaving cell execution outputs intact.
 - [ ] **Zero Decorative Emojis/Icons:** Confirmed absence of emojis or symbols across code, comments, Markdown, and plots.
 - [ ] **Vietnamese Comments with Diacritics:** All custom classes (`FocalLoss`, `WeightedTrainer`, etc.) and non-trivial logic blocks include standard Vietnamese explanatory comments.

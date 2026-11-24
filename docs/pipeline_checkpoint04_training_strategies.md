@@ -68,7 +68,7 @@ Tài liệu này đặc tả chi tiết kiến trúc tối ưu hóa phân tầng
 
 ## 4. Danh Mục Tệp Kết Quả Bắt Buộc (Mandatory Artifacts)
 
-Mọi lần chạy của notebook `Notebook/checkpoint04_training_strategies.ipynb` đều lưu các kết quả sau vào `outputs/checkpoint04/`:
+Mọi lần chạy của notebook `notebooks/checkpoint04_training_strategies.ipynb` đều lưu các kết quả sau vào `outputs/checkpoint04/`:
 1. `predictions.csv`: Cột `id`, `text`, `ground_truth`, `predicted_label`.
 2. `confusion_matrix_checkpoint04.png` & `confusion_matrix.csv`: Biểu đồ nhiệt Seaborn và dữ liệu ma trận nhầm lẫn.
 3. `learning_curves_checkpoint04.png`: Biểu đồ trực quan tiến trình Loss và Macro-F1.
