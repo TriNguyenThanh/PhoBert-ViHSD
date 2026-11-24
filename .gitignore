@@ -226,5 +226,23 @@ __marimo__/
 .gitnexus/
 
 /vncorenlp
-/Scripts
 /kaggle_runs
+
+# Local model weights and experiment tracking state
+/model/
+/models/
+/mlruns/
+mlflow.db
+
+AGENTS.md
+CLAUDE.md
+.claude/
+.codex/
+
+
+# Generated training state; keep exported evaluation reports under outputs/.
+/checkpoints/
+/checkpoint[0-9][0-9].tar.gz
+**/checkpoint-[0-9]*/
+**/final_model/
+**/runs/
